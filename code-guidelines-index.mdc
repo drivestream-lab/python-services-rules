@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Code guideline modules (index)
 
-These **`.mdc`** files govern **architectural patterns** for DriveStream Python HTTP services. They are maintained in the **`python-services-rules`** repository and installed into each consumer's **`.cursor/rules/`**.
+These **`.mdc`** files govern **architectural patterns** for DriveStream Python HTTP services. They live in the **`python-services-rules`** repository and are consumed via a **git submodule** at each service repo's **`.cursor/rules/`** (this directory when mounted).
 
 **Product-specific** requirements, ADRs, route catalogs, and env URLs belong in each service repo under **`docs/specification/`** and **README**—not in this package.
 

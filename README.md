@@ -4,44 +4,55 @@ Shared **Cursor agent rules** (`.mdc`) for DriveStream Python HTTP services. Rul
 
 **Source of truth:** evolved from **Abhilekh** `.cursor/rules/`, with cross-cutting additions (service profiles, JWT verification, `docs/specification/` pointers).
 
-**Version:** see [`VERSION`](VERSION) (currently **0.1.0**).
+**Version:** see [`VERSION`](VERSION) (currently **0.2.0**).
 
 ## Layout
 
+This repository root **is** the contents of a consumer's **`.cursor/rules/`** directory:
+
 ```
-python-services-rules/
+python-services-rules/     # mount as .cursor/rules in service repos
   VERSION
   README.md
-  cursor/rules/*.mdc      # 14 architectural rule modules
-  scripts/
-    install_cursor_rules.sh
+  architecture.mdc
+  dependency-injection.mdc
+  ... (14 rule modules)
 ```
 
-## Adopt in a service repo (submodule)
+## Adopt in a service repo (git submodule)
 
 From the consumer repo root (e.g. `airforge/`):
 
 ```bash
-git submodule add <remote-url> python-services-rules
-./python-services-rules/scripts/install_cursor_rules.sh
+# Remove any copied rules first
+rm -rf .cursor/rules
+
+git submodule add https://github.com/autrio10x/python-services-rules.git .cursor/rules
+cd .cursor/rules && git checkout v0.2.0 && cd ../..
+git add .gitmodules .cursor/rules
+git commit -m "Pin shared Python service Cursor rules at .cursor/rules"
 ```
 
-Pin the submodule commit in the consumer **README** (e.g. `python-services-rules @ 0.1.0`).
+Cursor reads **`.cursor/rules/*.mdc`** directly—no install script.
 
-### Re-install after bumping the submodule
+### Bump rules version
 
 ```bash
-git submodule update --remote python-services-rules   # optional: pull latest
-./python-services-rules/scripts/install_cursor_rules.sh --force
+cd .cursor/rules
+git fetch --tags
+git checkout v0.3.0
+cd ../..
+git add .cursor/rules
+git commit -m "Bump shared Cursor rules to v0.3.0"
 ```
 
-### Symlink instead of copy (optional)
+Pin the tag or commit SHA in the consumer **README** and **`AGENTS.md`**.
 
-```bash
-./python-services-rules/scripts/install_cursor_rules.sh --link
-```
+## Governance
 
-Cursor reads **`.cursor/rules/`** at the consumer repo root; the install script copies or links from this package.
+- **Architecture team** owns this repo; service teams **do not** edit rules in product repos.
+- Propose rule changes via PR here; consumers only update the submodule pointer.
+- **Do not** `gitignore` `.cursor/rules` in consumers—that breaks the pinned submodule for the team.
 
 ## What stays in each service repo
 
@@ -50,13 +61,13 @@ Cursor reads **`.cursor/rules/`** at the consumer repo root; the install script 
 | **`docs/specification/product/`** | Requirements, capabilities |
 | **`docs/specification/adr/`** | ADRs |
 | **`README.md`**, **`tests/README.md`** | Setup, env, verify commands |
-| **`AGENTS.md`** (recommended) | Router: point agents to rules + product docs |
+| **`AGENTS.md`** (recommended) | Router: do not edit `.cursor/rules`; link product docs |
 
 Do **not** put product-specific behavior in shared `.mdc` files.
 
 ## Rule index
 
-See [`cursor/rules/code-guidelines-index.mdc`](cursor/rules/code-guidelines-index.mdc).
+See [`code-guidelines-index.mdc`](code-guidelines-index.mdc).
 
 ## Reference implementations
 
@@ -66,6 +77,10 @@ See [`cursor/rules/code-guidelines-index.mdc`](cursor/rules/code-guidelines-inde
 
 ## Contributing
 
-1. Change rules in **`cursor/rules/`**.
-2. Bump **`VERSION`** (semver).
-3. Consumer repos: update submodule + run **`install_cursor_rules.sh --force`**.
+1. Edit **`*.mdc`** at this repo root.
+2. Bump **`VERSION`** (semver) and tag (e.g. `git tag v0.2.0`).
+3. Consumer repos: update submodule commit only—no copy/install step.
+
+## Migration from 0.1.x
+
+**0.1.x** used `cursor/rules/*.mdc` and optional `scripts/install_cursor_rules.sh`. **0.2.0+** mounts this repo at **`.cursor/rules`**; remove `python-services-rules/` at consumer root if you used the old layout.
