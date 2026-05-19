@@ -45,9 +45,19 @@ Not every HTTP service needs every package. Classify the service before copying 
 ## API layering
 
 - **Routers** depend on **business services** only (**`Depends(get_*_service)`**), not repositories directly.
-- **Business services** depend on **repositories** (and infra as needed); **repositories** return **Pydantic** models—schema ↔ model mapping stays inside the repository.
+- **Business services** depend on **repositories** (and infra as needed); **repositories** return **Pydantic** models — schema ↔ model mapping stays inside the repository.
 - **HTTP contract shape** (body vs query vs path): follow **`http-api-conventions.mdc`** so OpenAPI and BFFs stay predictable.
 - **Published routes:** refactoring composition (e.g. **`tenant_router`**) is allowed only if **external URLs and methods stay unchanged** (document frozen paths in the repo **README** or **`docs/specification/`**).
+
+These layering constraints are mechanically enforced — not just documented:
+
+| Layer boundary | Tool |
+|----------------|------|
+| `src.api` → must not import from `src.database.*` | **`import-linter`** |
+| `src.business_services` → must not import from `src.database.*.schema` | **`import-linter`** |
+| Method signatures at each boundary use correct Pydantic types | **pyright** |
+
+See **`python-tooling.mdc`** for the canonical `.importlinter` contract and pre-commit setup. See **`repository-pattern.mdc`** for the full enforcement table.
 
 ## `api/` structure convention
 

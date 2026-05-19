@@ -1,9 +1,15 @@
 ---
-description: Injector-based DI — modules, container, singletons, lifespan (reusable across Python services).
+description: Injector-based DI — unified @inject pattern for all services, modules, container, singletons, lifespan (reusable across Python services).
 alwaysApply: true
 ---
 
 # Dependency injection (`injector`)
+
+## Design principle
+
+**One DI style for all services.** Both infra and business services use **`@inject`** on `__init__`. The `injector` container owns singleton creation for every service type — there is no `get_instance()` singleton pattern on service classes. This keeps the dependency graph readable, testable, and consistent across HTTP, worker, CLI, and batch entry points.
+
+The `BaseInfraService` async lifecycle (`initialize` / `close` / `health_check`) is a **separate concern** from DI construction — it handles external resource open/close after the event loop is running, not object creation.
 
 ## Container
 
@@ -21,104 +27,138 @@ alwaysApply: true
 
 ## Construction rules
 
-### Business Services (use @inject constructor pattern)
+### All services — unified `@inject` pattern
 
-- **Always** use **`@inject`** on **`__init__`** for business services (including stateless helpers such as **`PromptService`** with no injected parameters):
-  ```python
-  from injector import inject
-  
-  class BusinessService(BaseBusinessService):
-      @inject
-      def __init__(
-          self,
-          postgres_service: PostgresService,
-          repository: SomeRepository,
-      ) -> None:
-          super().__init__()
-          self._postgres_service = postgres_service
-          self._repository = repository
-  ```
+**Always** use **`@inject`** on **`__init__`** for every service — infra, business, and stateless helpers. Collaborators (repos, infra services, settings) are injected as constructor parameters.
 
-- **Never** use manual singleton patterns (`get_instance()`) for business services.
-- Dependencies are **ready after construction** (`@inject` + `super().__init__()`). Use **`initialize()`** only for optional async setup (see **Lifecycle** below)—not for opening DB pools or HTTP clients.
+**Business service:**
+```python
+from injector import inject
 
-### Infrastructure Services (resource management pattern)
+class DeviceService(BaseBusinessService):
+    @inject
+    def __init__(
+        self,
+        postgres_service: PostgresService,
+        repository: DeviceRepository,
+    ) -> None:
+        super().__init__()
+        self._postgres_service = postgres_service
+        self._repository = repository
+```
 
-- Infra services manage external resources (DB connections, HTTP clients, Redis).
-- Use **`BaseInfraService`** with **`get_instance()`** singleton pattern.
-- Implement **`async def initialize()`** and **`async def close()`** for resource lifecycle.
-- Examples: `PostgresService`, `RedisService`, `KavachClient`.
+**Infra service:**
+```python
+from injector import inject
+
+class PostgresService(BaseInfraService):
+    @inject
+    def __init__(self, settings: AppSettings) -> None:
+        super().__init__()
+        self._settings = settings
+
+    async def initialize(self) -> None:
+        self._pool = await asyncpg.create_pool(self._settings.database_url)
+
+    async def close(self) -> None:
+        await self._pool.close()
+
+    async def health_check(self) -> bool:
+        return self._pool is not None
+```
+
+**Never** use a `get_instance()` class method as a singleton guard on service classes — `injector` with `scope=singleton` is the singleton contract.
+
+### Why `@inject` on infra services
+
+`injector.get(PostgresService)` calls `__init__` synchronously (cheap: Python object created, settings assigned). The async resource opening (`await pool.open()`) happens in `initialize_all_services()` after the event loop is running. These are two separate phases — DI handles the first, the startup loop handles the second. There is no conflict.
 
 ### Repository Bindings
 
-- Use **`@provider`** and **`@singleton`** for repositories that need session factories:
-  ```python
-  @provider
-  @singleton  
-  def provide_some_repository(
-      self, postgres_service: PostgresService
-  ) -> SomeRepository:
-      return SomeRepository(
-          session_factory=postgres_service.get_session_factory()
-      )
-  ```
+Use **`@provider`** and **`@singleton`** for repositories that need session factories:
+```python
+@provider
+@singleton
+def provide_device_repository(
+    self, postgres_service: PostgresService
+) -> DeviceRepository:
+    return DeviceRepository(
+        session_factory=postgres_service.get_session_factory()
+    )
+```
 
 ### DI Module Bindings
 
-- **Business services**: Simple binding without `get_instance()`:
-  ```python
-  def configure(self, binder: Binder) -> None:
-      binder.bind(BusinessService, scope=singleton)
-  ```
+All services — infra and business alike — bind the same way:
+```python
+def configure(self, binder: Binder) -> None:
+    binder.bind(PostgresService, scope=singleton)   # infra
+    binder.bind(RedisService, scope=singleton)      # infra
+    binder.bind(DeviceService, scope=singleton)     # business
+```
 
-- **Infra services**: Use `get_instance()` for resource management:
-  ```python  
-  def configure(self, binder: Binder) -> None:
-      binder.bind(PostgresService, to=PostgresService.get_instance(), scope=singleton)
-  ```
+No `to=SomeService.get_instance()` — the container constructs the instance.
 
 ### FastAPI Integration
 
-- **`get_*_service()`** functions should delegate to **`provide_service(...)`** (lazy-import `provide_service` inside the getter if needed to avoid import cycles):
-  ```python
-  def get_business_service() -> BusinessService:
-      from src.di.dependency_container import provide_service
-      return provide_service(BusinessService)
-  ```
+**`get_*_service()`** functions delegate to **`provide_service(...)`** (lazy-import inside the getter if needed to avoid import cycles):
+```python
+def get_device_service() -> DeviceService:
+    from src.di.dependency_container import provide_service
+    return provide_service(DeviceService)
+```
 
-- Do not construct heavy singletons (pools, clients) inside arbitrary business methods—resolve them once via DI.
+Do not construct heavy singletons (pools, clients) inside arbitrary business methods — resolve them once via DI.
 
 ### Settings (env-backed singletons)
 
-- **`AppSettings`**, **`DefinitionParseSettings`**, **`S3Settings`**, **`LLMSettings`**, etc. are **process singletons** (`FooSettings.get_instance()`).
-- **Business and infra services** load settings **once in `__init__`** → `self._foo_settings = FooSettings.get_instance()` (or assign in infra `__init__`).
-- **Do not** call `get_instance()` inside service **methods** or API routers (except app/bootstrap entry such as `create_app()` / `main.py`).
-- **Do not** add a `@provider` in `ConfigModule` for every settings class unless injection is explicitly needed; prefer the `__init__` pattern above.
-- **Inject via DI** only for collaborators (repos, `PostgresService`, HTTP/S3/LLM clients)—not for env settings singletons.
+- **`AppSettings`**, **`DefinitionParseSettings`**, **`S3Settings`**, **`LLMSettings`**, etc. are **process singletons** that remain on the `FooSettings.get_instance()` pattern — they are not services with lifecycle, they are configuration bags loaded at startup.
+- **Infra and business services** receive settings **via `@inject`** — `AppSettings` is bound in `ConfigModule` and injected into service constructors.
+- **Do not** call `FooSettings.get_instance()` inside service **methods** or API routers (except bootstrap entry such as `create_app()` / `main.py`).
+- **Do not** add a `@provider` in `ConfigModule` for every settings class unless injection is explicitly needed; prefer a simple `binder.bind(AppSettings, to=AppSettings.get_instance(), scope=singleton)` so injector can resolve it as a collaborator.
 
 ## Lifecycle and startup
 
-`initialize_all_services()` runs **two phases** (see `dependency_container.py`). Same method names on infra and business; **different purpose**—do not open external resources in business `initialize()`.
+`initialize_all_services()` runs **two phases** (see `dependency_container.py`). Same method names on infra and business; **different purpose** — do not open external resources in business `initialize()`.
 
 | | **Infra** (`BaseInfraService`) | **Business** (`BaseBusinessService`) |
 |---|-------------------------------|--------------------------------------|
 | **Purpose** | Own **long-lived resources** (pools, clients) | **Orchestration**; collaborators injected in `__init__` |
-| **`initialize()`** | **Required** real setup (e.g. open Postgres pool). Subclasses implement `@abstractmethod`. | Called at app startup after infra. Sets `_initialized`; default is logging only. Override on a specific service only for rare async setup (caches, file loads)—**not** for DB pools or HTTP clients. |
+| **`initialize()`** | **Required** real setup (e.g. open Postgres pool). Subclasses implement `@abstractmethod`. | Called at app startup after infra. Sets `_initialized`; default is logging only. Override on a specific service only for rare async setup (caches, file loads) — **not** for DB pools or HTTP clients. |
 | **`close()`** | Release resources | Clear startup flag; no resource teardown in the usual case |
 | **`health_check()`** | Probe the **external dependency** (pool, client, etc.) | Indicates startup **`initialize()`** completed (`_initialized`). **Not** a substitute for infra health or `/health` routes. |
-| **Fail-fast** | `await initialize()` fails if resources cannot start | `injector.get(Service)` fails if DI/`__init__` breaks; `await initialize()` fails if override raises |
+| **Fail-fast** | `await initialize()` fails if resources cannot start | `injector.get(Service)` fails if DI / `__init__` breaks; `await initialize()` fails if override raises |
 
-**Startup order:** (1) all `_INFRA_SERVICE_TYPES` → `await initialize()`; (2) all `_BUSINESS_SERVICE_TYPES` → `injector.get()` then `await initialize()`. Postgres must be first in the infra tuple.
+**Startup order:** (1) all `_INFRA_SERVICE_TYPES` → `injector.get()` then `await initialize()`; (2) all `_BUSINESS_SERVICE_TYPES` → `injector.get()` then `await initialize()`. Postgres must be first in the infra tuple.
 
 **Shutdown:** business `close()` then infra `close()` (reverse order of infra list).
 
 - **`dependency_container.py`** keeps **`_INFRA_SERVICE_TYPES`** and **`_BUSINESS_SERVICE_TYPES`** in sync with **`InfraModule`** / **`BusinessServicesModule`**.
-- Break import cycles with **lazy imports** inside **`configure_container`**, **`initialize_all_services`**, or provider factories—this is the **main allowed exception** to **top-of-file imports** (see **`python-imports.mdc`**).
+- Break import cycles with **lazy imports** inside **`configure_container`**, **`initialize_all_services`**, or provider factories — this is the **main allowed exception** to top-of-file imports (see **`python-imports.mdc`**).
 - For **tests**, expose **`reset_container()`** (or similar) to clear the global `Injector` between cases.
+
+## Entry points (HTTP, worker, CLI)
+
+The same `configure_container()` call works across all entry points. Infra modules and bindings are identical regardless of whether the process is an HTTP server or a background worker:
+
+```python
+# HTTP entry (main.py)
+container = configure_container()
+await initialize_all_services()
+uvicorn.run("src.app:create_app", factory=True, ...)
+
+# Worker / CLI entry (worker_main.py)
+container = configure_container()
+await initialize_all_services()
+worker = provide_service(WorkerService)
+await worker.run()
+```
+
+No separate wiring for workers — the DI container is the single composition root for all process types.
 
 ## Related rules
 
 - **Where DI is wired:** `architecture.mdc`
-- **Infra bindings:** `infra-services.mdc`
+- **Infra scope:** `infra-services.mdc`
 - **Repos / schemas:** `repository-pattern.mdc`, `pydantic-schemas.mdc`
 - **Imports:** `python-imports.mdc`

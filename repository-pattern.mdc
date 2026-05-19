@@ -8,15 +8,28 @@ alwaysApply: true
 ## Strict layering (team standard)
 
 ```
-business_services  →  repositories  →  database ORM / table schema (SQLAlchemy)
-        ↓                      ↓
-   Pydantic DTOs         map rows ↔ DTOs
+src.api  →  src.business_services  →  src.database.*.repository  →  src.database.*.schema
+               ↓                               ↓
+          Pydantic DTOs               map rows ↔ DTOs
 ```
 
-- **Business services** call **repositories** only. They use **Pydantic models** / DTOs from **`models/`**—**never** import or accept **ORM schema** classes. Service **public** APIs default to **Pydantic**, not raw **`dict`** (see **`pydantic-schemas.mdc`** guardrail; dict-shaped exceptions need explicit product/user alignment).
-- **Repositories** are the **only** layer that imports and uses **database schema** (ORM models / table definitions under **`database/.../schema/`** or equivalent). They execute queries and **map** ORM rows to/from **Pydantic** models (or primitives) for callers—structured payloads are **models**, not raw **`dict`** (see **`pydantic-schemas.mdc`**).
+- **Business services** call **repositories** only. They use **Pydantic models** / DTOs from **`models/`** — **never** import or accept **ORM schema** classes. Service **public** APIs default to **Pydantic**, not raw **`dict`** (see **`pydantic-schemas.mdc`** guardrail; dict-shaped exceptions need explicit product/user alignment).
+- **Repositories** are the **only** layer that imports and uses **database schema** (ORM models / table definitions under **`database/.../schema/`** or equivalent). They execute queries and **map** ORM rows to/from **Pydantic** models (or primitives) for callers — structured payloads are **models**, not raw **`dict`** (see **`pydantic-schemas.mdc`**).
 - **Postgres** repositories in this repo inherit **`BasePostgresRepository`** and accept **session** or **session_factory** as established in **`base_repository.py`**.
 - **Nobody else** (API routers, business services, utils, infra except session factory) uses **ORM schema** types directly.
+
+### Enforcement
+
+These constraints are enforced by two tools — text rules alone are not sufficient:
+
+| Constraint | Enforcer |
+|------------|----------|
+| `src.api` cannot import from `src.database.*` (any sub-package) | **`import-linter`** — hard CI failure |
+| `src.business_services` cannot import from `src.database.*.schema` | **`import-linter`** — hard CI failure |
+| Business service method signatures use Pydantic models, not `dict` | **pyright** — type error at call site |
+| ORM type never appears in a business or API method signature | **pyright** — type error at call site |
+
+See **`python-tooling.mdc`** for the canonical `.importlinter` contract. Adapt layer paths to match the service repo's actual package structure.
 
 ## Placement
 

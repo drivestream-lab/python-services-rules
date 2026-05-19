@@ -27,6 +27,8 @@ alwaysApply: true
 - **Never** define Pydantic models inside `src/api/` — not as `api/v1/models.py`, not as `api/internal/models.py`, not inline in router files.
 - Router files (`api/v1/policy_routes.py`, `api/internal/router.py`, …) **import** from `src.models.*`; they contain only routing logic.
 
+**Enforcement:** `import-linter`'s layers contract (see **`python-tooling.mdc`**) makes it a CI failure for `src.api` to import from anything other than `src.models`, `src.business_services`, and `src.common`. Since models are defined only in `src.models`, a route file with a locally-defined `BaseModel` subclass would have no valid import path for it — pyright will surface the inconsistency. Additionally, any `BaseModel` subclass found under `src/api/` during code review or agent sessions is an immediate reject with no exceptions.
+
 ## Metadata field naming
 
 - **Do not** use a bare field name **`metadata`** on schemas when it collides with frameworks or reserved semantics.

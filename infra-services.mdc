@@ -27,12 +27,17 @@ Typical **infra** responsibilities:
 
 - Use **`BaseInfraService`**: implement **`async initialize`**, **`async close`**, and **`health_check`** for **resource** open/close/probe (subclasses are `@abstractmethod`).
 - Register every connection-backed client in **`InfraModule`** and include it in **`_INFRA_SERVICE_TYPES`** in **`dependency_container.py`** (keep in sync).
-- **Business** services also expose `initialize()` / `close()` / `health_check()` on **`BaseBusinessService`**, but that is **not** resource lifecycle—see the infra vs business table in **`dependency-injection.mdc`**.
+- **Business** services also expose `initialize()` / `close()` / `health_check()` on **`BaseBusinessService`**, but that is **not** resource lifecycle — see the infra vs business table in **`dependency-injection.mdc`**.
+
+## Construction
+
+- Use **`@inject`** on **`__init__`** — same as business services. `injector` with `scope=singleton` is the singleton contract; **do not** add a `get_instance()` class method on infra services.
+- `__init__` is synchronous and cheap (settings assigned, no I/O). Actual resource opening (pool, client, connection) happens in **`async initialize()`** after the event loop is running.
 
 ## Settings
 
-- Load env-backed settings **once in `__init__`**: `self._settings = FooSettings.get_instance()`.
-- Do not call `get_instance()` inside infra **methods**; pass policy from the caller when the helper is a plain function (e.g. HTTP fetch allowlist from the business service that already holds settings).
+- Receive settings **via `@inject`** — `AppSettings` (or domain-specific settings) are bound in `ConfigModule` and injected into the infra service constructor.
+- Do not call `FooSettings.get_instance()` inside infra **methods**; settings are assigned in `__init__` and used from `self._settings` throughout the lifecycle.
 
 ## Related rules
 

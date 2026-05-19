@@ -34,6 +34,7 @@ alwaysApply: true
 ## Quality bar
 
 - Do not silence checkers by widening to **`Any`** or untyped **`dict`**; fix the model or narrow the type.
+- **pyright** is the enforcer — see **`python-tooling.mdc`** for configuration. Editor squiggles (Cursor / Pylance) and CI failures are the same tool; a clean pyright run is the definition of "passes type checking".
 
 ## Related rules
 
