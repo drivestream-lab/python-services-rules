@@ -1,0 +1,71 @@
+---
+description: Methodology for integration testing—debug, verify, pytest; config and HTTP client patterns.
+alwaysApply: true
+---
+
+# Integration testing methodology
+
+Each repository should document **concrete paths, env var names, auth providers, and run commands** in **`tests/README.md`** (or equivalent). This file defines **approach and structure** only so the same rules can be reused across services.
+
+## Objectives
+
+- Run **integration-style** checks against a **live API** without folding everything into pytest.
+- Keep **secrets and machine-specific URLs** out of version control while staying easy to run locally and in CI.
+
+## Categories (separate concerns)
+
+| Category | Role | Typical invocation | Assertions |
+|----------|------|--------------------|------------|
+| **Debug** | Explore flows; print responses | Module entry, e.g. `python -m tests.debug.<script>` | Optional or informal |
+| **Verify** | Contract and smoke tests on a **running** server | Module per area + optional `verify_all` | Exit code, status, response shape |
+| **Pytest** | Fast unit / small integration | `pytest` | **`TestClient`**, mocks, no live-server requirement |
+
+**Convention:** Do not make debug or verify scripts **depend on** pytest discovery unless you deliberately unify them. Prefer **`verify/`** (including multi-step journeys) over a duplicate **e2e/** tree unless a second layer is clearly scoped (e.g. cross-service only).
+
+## Tenant and identity from APIs
+
+- When protected routes use Bearer tokens from an identity provider, **derive tenant (or user) context from the token claims** (or from the provider's selection response) for downstream request bodies instead of hardcoding tenant UUIDs in config.
+- Keep **optional config/env overrides** only for **disambiguation** (multi-tenant selection) or when tokens omit a claim.
+
+## Interpreter and environment
+
+- **Verify** and **debug** scripts should use the **same Python environment** as the running API (dependencies, `src.*` on **`PYTHONPATH`** / **`pythonpath`**). Repositories may standardize on **conda**, **Poetry**, or **uv**; follow **`tests/README.md`** for the canonical command (e.g. **`conda activate <env>`** then **`python -m tests.verify.verify_all`**).
+- **Closed vocabulary** strings in verify code must come from shared **enums** in **`src/models/`** for that repo — use **`.value`** in JSON payloads and assertions, not duplicated literals.
+
+## Configuration pattern
+
+- **Committed example** (e.g. `config.yaml.example`) + **local file** (often gitignored) for URLs, credentials, and optional overrides.
+- **Environment variables** override file values for CI and different environments.
+- **Structured inputs** for verify flows (IDs, metadata, sequences) live in config or central defaults with getters—avoid scattering literals across scripts.
+
+## Shared helpers layout
+
+- Place shared code under a path that **pytest does not collect** as tests (e.g. `_helpers/` or leading underscore in package name).
+- **Config loader:** merge defaults, file, and env; one place for precedence rules.
+- **HTTP client:** base URL, timeouts, optional **`Authorization`** header construction.
+- **API paths helper:** maintain **`tests/_helpers/api_paths.py`** with functions for **this repo's mounted routes**—do not copy path prefixes from a sibling service.
+- **Token acquisition:** if protected routes need Bearer tokens, isolate login or token exchange; parse third-party JSON with **Pydantic v2** and **`extra="ignore"`** where responses evolve.
+- **Policy:** When an identity service is **configured** for tests, obtain tokens through that path for protected routes; reserve static token env vars for documented exceptions (e.g. narrow CI or `skip_*` flags), not as the default hidden bypass.
+
+## Public vs authenticated routes
+
+- **Align scripts with the product:** use no **`Authorization`** only where the API contract says the route is public; use real tokens for protected routes the same way production clients do.
+- **Health and ops:** keep the simplest liveness check cheap; if detailed diagnostics are sensitive, protect them consistently—document behavior in the repo README, not only in code.
+
+## Verify script practices
+
+- Exit **`0`** on success, **non-zero** on failure.
+- Prefer a **single aggregator** to run the full smoke set in CI with one command.
+- Failures should print **clear, grep-friendly** messages.
+
+## Pytest practices (in-process)
+
+- Configure **`pythonpath`** so application packages resolve from the repo root.
+- When the app **always** enables auth middleware, in-process tests should either supply a **test verification key** fixture or document how they satisfy startup—avoid disabling auth in tests unless the repo explicitly allows it.
+- Tests that only hit **public** routes should not require tokens.
+
+## Related rules
+
+- **Tooling:** `python-tooling.mdc`
+- **Architecture:** `architecture.mdc`
+- **Product paths (per repo):** consumer **`docs/specification/`**

@@ -1,0 +1,50 @@
+---
+description: Index of Python backend guideline rules (modular MDC topics).
+alwaysApply: true
+---
+
+# Code guideline modules (index)
+
+These **`.mdc`** files govern **architectural patterns** for DriveStream Python HTTP services. They are maintained in the **`python-services-rules`** repository and installed into each consumer's **`.cursor/rules/`**.
+
+**Product-specific** requirements, ADRs, route catalogs, and env URLs belong in each service repo under **`docs/specification/`** and **README**—not in this package.
+
+## Architectural rules (this package)
+
+| File | Topic |
+|------|--------|
+| **`architecture.mdc`** | Layered **`src/`** layout, service profiles, JWT verification, **`main.py`** vs **`app.create_app()`** |
+| **`fail-fast.mdc`** | **Fail fast**; avoid defensive / silent recovery without approval |
+| **`python-imports.mdc`** | **All imports at top of file**; DI bootstrap exception |
+| **`dependency-injection.mdc`** | **`injector`**, **`_INFRA_SERVICE_TYPES`**, init/shutdown; settings in service **`__init__`** |
+| **`infra-services.mdc`** | DB stack, third-party APIs, sibling internal HTTP clients, buses |
+| **`repository-pattern.mdc`** | **Business → repo → ORM only**; JSONB + Pydantic at repo boundary |
+| **`pydantic-schemas.mdc`** | **Pydantic not Dict**; **`_metadata`**; domain enums |
+| **`strong-typing.mdc`** | Annotations, boundaries, JSONB typing |
+| **`database-migrations.mdc`** | **Alembic**, hand-written revisions, human-owned versions |
+| **`testing-verify-flows.mdc`** | verify / debug / pytest methodology |
+| **`logging-loguru.mdc`** | **`get_logger`**, **`setup_logging`**, correlation |
+| **`python-tooling.mdc`** | Black, Ruff, pytest, **`pythonpath`** |
+| **`http-api-conventions.mdc`** | REST/FastAPI body/query/path conventions |
+
+## Per-repository product documentation
+
+Each service repo should provide (not in this package):
+
+| Path | Purpose |
+|------|---------|
+| **`docs/specification/product/`** | Requirements, capabilities, features |
+| **`docs/specification/adr/`** | Architecture decision records |
+| **`README.md`** | Setup, env vars, pinned **`python-services-rules`** version |
+
+## Cross-project conventions (style)
+
+- **No emojis** in code or logs; use tags such as **[OK]**, **[ERROR]**, **[WARNING]**, **[INFO]** when needed.
+- **Service imports:** import service classes and **`get_*_service`** getters from **service modules**, not from package **`__init__.py`**.
+- **Reference implementation:** **Abhilekh** for layered shell + DI; **Parichay** for JWT issuance and claim shapes.
+- **Do not** add product features to shared **`.mdc`** files—extend **`docs/specification/`** in the consumer repo.
+
+## Where to start
+
+1. **`architecture.mdc`** and **`dependency-injection.mdc`** for structure and lifecycle.
+2. Consumer repo **`docs/specification/`** when the task changes behavior, APIs, or integrations.

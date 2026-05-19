@@ -1,0 +1,29 @@
+---
+description: Black, Ruff, pytest, pythonpath — standard Python repo hygiene.
+alwaysApply: true
+---
+
+# Tooling
+
+## Format and lint
+
+- **Black** + **Ruff**; line length **100**; target **Python 3.12** (match **`pyproject.toml`**).
+- Run on **`src/`** and **`tests/`** (or project convention) in CI and locally before push.
+
+## Tests
+
+- **pytest**; set **`testpaths`** (e.g. **`["tests"]`**).
+- Set **`pythonpath = ["."]`** (or equivalent) so **`from src....`** imports work **without** an editable install—same as local **`poetry run`**.
+
+## Business-flow verification
+
+- Use **`tests/verify/`** for smoke / end-to-end business flows (see **`testing-verify-flows.mdc`**), separate from fast unit tests.
+
+## Dependencies
+
+- Prefer **pinned ranges** in Poetry aligned with your org or stack (e.g. pydantic v2, pydantic-settings, loguru, injector when using DI).
+
+## Related rules
+
+- **Verify flows:** `testing-verify-flows.mdc`
+- **Import style:** `architecture.mdc`

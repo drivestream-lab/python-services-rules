@@ -1,0 +1,55 @@
+---
+description: Repository pattern — strict layering: business → repository → ORM schema only.
+alwaysApply: true
+---
+
+# Repository pattern
+
+## Strict layering (team standard)
+
+```
+business_services  →  repositories  →  database ORM / table schema (SQLAlchemy)
+        ↓                      ↓
+   Pydantic DTOs         map rows ↔ DTOs
+```
+
+- **Business services** call **repositories** only. They use **Pydantic models** / DTOs from **`models/`**—**never** import or accept **ORM schema** classes. Service **public** APIs default to **Pydantic**, not raw **`dict`** (see **`pydantic-schemas.mdc`** guardrail; dict-shaped exceptions need explicit product/user alignment).
+- **Repositories** are the **only** layer that imports and uses **database schema** (ORM models / table definitions under **`database/.../schema/`** or equivalent). They execute queries and **map** ORM rows to/from **Pydantic** models (or primitives) for callers—structured payloads are **models**, not raw **`dict`** (see **`pydantic-schemas.mdc`**).
+- **Postgres** repositories in this repo inherit **`BasePostgresRepository`** and accept **session** or **session_factory** as established in **`base_repository.py`**.
+- **Nobody else** (API routers, business services, utils, infra except session factory) uses **ORM schema** types directly.
+
+## Placement
+
+- Repository classes under **`src/database/postgres/repository/`** (or equivalent store).
+- ORM / table definitions under **`database/.../schema/`** (project naming may vary).
+- One repository module (or cohesive group) per aggregate / table family.
+
+## Responsibility
+
+- Repositories: **data access only**—queries, mappings, pagination. **No** business rules or authorization policy.
+- **No** SQL or ORM usage in route handlers, business services, or random utils.
+
+## Async and sessions
+
+- **Async** methods when using async SQLAlchemy (or async drivers).
+- **Session** or **session factory** comes from **infra**; transaction boundaries live in the **service** layer unless the project uses a dedicated UoW.
+
+## JSON / JSONB
+
+- For **JSONB** (or JSON) columns, define a **Pydantic v2 model** for the payload shape. **Repository** validates with that model on read/write so the rest of the stack stays **strongly typed** (see **`pydantic-schemas.mdc`**).
+
+## Base type
+
+- Share patterns via **`BasePostgresRepository`** (this repo) / **`BaseRepository`** rather than duplicating session/query boilerplate.
+- **`session_factory`** is **required** in the repository constructor (provided by **`RepositoryModule`** from **`PostgresService.get_session_factory()`**). Do not fall back to a global connection manager inside the base repository.
+
+## Services without a database
+
+- Tools / jobs may omit **`database/`**. Keep the same **separation idea**: persistence helpers + **business** orchestration; no ORM in the wrong layer.
+
+## Related rules
+
+- **Pydantic / JSONB / enums:** `pydantic-schemas.mdc`
+- **DI:** `dependency-injection.mdc`
+- **Infra (sessions):** `infra-services.mdc`
+- **Typing:** `strong-typing.mdc`
