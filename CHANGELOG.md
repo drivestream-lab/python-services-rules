@@ -139,7 +139,7 @@ Restructured repo layout so the root of this repo can be mounted directly as `.c
 ### Changes
 
 - Moved all `.mdc` rule modules from `cursor/rules/` to the repository root.
-- Removed `scripts/install_cursor_rules.sh`.
+- Removed the legacy copy/install mechanism.
 - Updated consumer adoption workflow from copy-based to submodule-based.
 - Added service profile classification (internal provider vs internal consumer only).
 - Added JWT verification pattern standardised across non-issuer services.
@@ -153,4 +153,4 @@ Remove `python-services-rules/` from the consumer repo root (old copy location).
 
 ## v0.1.x
 
-Initial rules extracted from an internal Python HTTP service. Distributed via `scripts/install_cursor_rules.sh` into `cursor/rules/` at the consumer root.
+Initial rules extracted from an internal Python HTTP service. Distributed via a copy/install script into `cursor/rules/` at the consumer root.

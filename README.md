@@ -328,4 +328,4 @@ Nominate services from your own platform as reference implementations and docume
 
 ## Migration from 0.1.x to 0.2.x
 
-**0.1.x** used `cursor/rules/*.mdc` and an optional `scripts/install_cursor_rules.sh`. **0.2.0+** mounts this repo directly at `.cursor/rules` via submodule — remove `python-services-rules/` at the consumer root if you used the old layout.
+**0.1.x** used `cursor/rules/*.mdc` and a copy/install step. **0.2.0+** mounts this repo directly at `.cursor/rules` via submodule — remove any previously copied rules directory at the consumer root if you used the old layout.
