@@ -6,6 +6,22 @@ Format: **Breaking** changes require code changes in consumer repos before or al
 
 ---
 
+## v0.5.1
+
+### Summary
+
+Corrections to `python-tooling.mdc` environment guidance based on team pushback. Both changes are non-breaking — existing setups continue to work unchanged.
+
+### Changes
+
+#### `python-tooling.mdc` — Additive / Corrective
+
+- **Revised** environment management section: replaced the single Option A (`prefer-active-python true`) mandate with two explicitly documented options. Option A (single env, new services) and Option B (dual env with `.venv` + `pyrightconfig.json`, existing services). Documents the failure mode of each. The previous guidance incorrectly presented Option B as wrong.
+- **Revised** pyright config section: config location and `venvPath`/`venv` presence now depend on which option the service uses. Option A → `[tool.pyright]` without `venvPath`; Option B → `pyrightconfig.json` with `venvPath`.
+- **Revised** dependencies section: scoped `environment.yml` requirement. Required only for services with native conda-managed dependencies (CUDA, system libs, compiled extensions). Pure Python services do not need it — `pyproject.toml`'s Python version constraint enforces the interpreter version at `poetry install` time.
+
+---
+
 ## v0.5.0
 
 ### Summary
