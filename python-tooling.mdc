@@ -5,6 +5,30 @@ alwaysApply: true
 
 # Tooling
 
+## Environment management (conda + Poetry)
+
+**conda** manages the Python interpreter and environment isolation. **Poetry** manages dependencies (packages, `pyproject.toml`, lock file) within that environment.
+
+### One-time machine setup
+
+```bash
+# Tell Poetry to always use whatever Python interpreter is currently active
+# Run once per machine — applies globally to all projects
+poetry config virtualenvs.prefer-active-python true
+```
+
+This means Poetry never creates a parallel `.venv` — it installs packages directly into the active conda env. One environment, no double-env confusion, and all tools (`pyright`, `pytest`, `ruff`, etc.) use the same interpreter automatically.
+
+### Per-session workflow
+
+```bash
+conda activate <env-name>   # activate once per terminal session
+poetry install              # install / sync dependencies into the active conda env
+make check                  # all quality gates run against the conda env
+```
+
+**Do not** run `poetry install` or `make check` without an active conda env — packages will land in the wrong place.
+
 ## Format and lint
 
 - **Black** + **Ruff**; line length **100**; target **Python 3.12** (match **`pyproject.toml`**).
@@ -13,16 +37,15 @@ alwaysApply: true
 ## Static type checking (pyright)
 
 - Use **pyright** as the static type checker. Cursor / Pylance already runs pyright in the editor — CI must gate on the same tool so editor squiggles and CI failures are identical.
-- Configure in **`pyproject.toml`**:
+- With conda + `virtualenvs.prefer-active-python true`, pyright auto-detects the active conda interpreter. Configure in **`pyproject.toml`**:
   ```toml
   [tool.pyright]
   pythonVersion = "3.12"
   pythonPlatform = "Linux"
   typeCheckingMode = "basic"        # existing services: start here
   # typeCheckingMode = "strict"     # new services: start strict from day one
-  venvPath = "."
-  venv = ".venv"
   ```
+  **Do not** add `venvPath` / `venv` — those point pyright at a `.venv` that does not exist in the conda setup and cause false "missing stubs" errors across all installed packages.
 - **Existing services**: start at `basic` and tighten incrementally — add `reportMissingParameterType`, `reportUnknownVariableType`, etc. one at a time as the codebase is cleaned up.
 - **New services**: use `strict` from the first commit. No exceptions without documented justification in `pyproject.toml` comments.
 - **Do not** widen types to `Any` or add `# type: ignore` to silence pyright — fix the model or narrow the type (see **`strong-typing.mdc`**).
@@ -115,7 +138,7 @@ repos:
         pass_filenames: false
 ```
 
-- Developers run **`pre-commit install`** once after cloning.
+- After cloning, **activate the conda env first**, then run **`pre-commit install`** — hooks must be installed into the active conda env so they can resolve all tools.
 - CI runs **`pre-commit run --all-files`** as a separate check step.
 
 ## Local developer workflow (Makefile)
@@ -163,7 +186,9 @@ The `check` target is the single command engineers remember. It must pass cleanl
 
 ## Dependencies
 
-- Prefer **pinned ranges** in Poetry aligned with your org or stack (e.g. pydantic v2, pydantic-settings, loguru, injector when using DI).
+- **conda** owns the Python interpreter version — pin it in a committed `environment.yml` or `conda-lock.yml` at the repo root so all developers and CI use the same Python.
+- **Poetry** owns everything else — application packages, dev tools, lock file (`poetry.lock`). Prefer **pinned ranges** aligned with your stack (e.g. pydantic v2, pydantic-settings, loguru, injector when using DI).
+- Do not install application packages via `conda install` — keep all Python dependencies in `pyproject.toml` so the lock file is the single source of truth.
 
 ## Related rules
 

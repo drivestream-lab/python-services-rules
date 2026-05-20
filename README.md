@@ -2,7 +2,7 @@
 
 Shared **Cursor agent rules** (`.mdc`) for Python microservices. Rules describe **how to code** (architecture, DI, repos, HTTP conventions) — not product requirements. Designed as a reusable constitution: adopt it in any Python microservice project, regardless of platform.
 
-**Version:** see [`VERSION`](VERSION) (currently **0.4.1**) · [CHANGELOG](CHANGELOG.md)
+**Version:** see [`VERSION`](VERSION) (currently **0.4.2**) · [CHANGELOG](CHANGELOG.md)
 
 ---
 
@@ -93,14 +93,16 @@ Start here before making changes to API behaviour, routes, or integrations.
 
 ### 3. Add new tooling required by v0.4.0
 
-These tools are now required by `python-tooling.mdc`. Add them to each service repo:
+These tools are now required by `python-tooling.mdc`. **Activate your conda env first**, then add them to each service repo:
 
 ```bash
-# Type checker
-poetry add --group dev pyright
+conda activate <env-name>
 
-# Architectural layer enforcement
-poetry add --group dev import-linter
+# One-time machine config — Poetry uses the active conda interpreter
+poetry config virtualenvs.prefer-active-python true
+
+# Type checker + architectural layer enforcement
+poetry add --group dev pyright import-linter
 ```
 
 **`pyproject.toml`** — add pyright config:
@@ -184,9 +186,10 @@ repos:
         pass_filenames: false
 ```
 
-Install pre-commit hooks once after cloning:
+Install pre-commit hooks once after cloning (conda env must be active):
 
 ```bash
+conda activate <env-name>
 pre-commit install
 ```
 
