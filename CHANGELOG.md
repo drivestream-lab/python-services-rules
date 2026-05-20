@@ -6,7 +6,54 @@ Format: **Breaking** changes require code changes in consumer repos before or al
 
 ---
 
-## v0.4.0
+## v0.5.0
+
+### Summary
+
+Nine targeted rule additions and clarifications based on team feedback from making service codebases pyright-compliant. All changes are additive — no breaking changes to existing code patterns.
+
+### Changes by file
+
+#### `dependency-injection.mdc` — Additive
+
+- **Added** `is_configured()` anti-pattern section: making a required dependency optional at the settings level with `is_configured()` guards violates fail-fast. Required deps use `base_url: str` (no default). Genuinely optional deps require ADR + WARNING log + test coverage.
+- **Added** explicit `await service.initialize()` code example for the startup loop. Both infra and business service phases must call `await initialize()` — `provide_service()` / `injector.get()` only constructs; it does not initialize.
+
+#### `pydantic-schemas.mdc` — Additive
+
+- **Added** `Field(default=None)` rule: always use keyword form for defaults. `Field(None, description="...")` (positional) is not recognised as a default by pyright's Pydantic v2 stubs and causes type errors at every call site.
+- **Added** `extra="allow"` + `model_validate` guidance: pyright rejects undeclared kwargs on `__init__` even with `extra="allow"`. Always use `Model.model_validate({...})` at construction sites with dynamic fields.
+
+#### `python-tooling.mdc` — Additive
+
+- **Added** `pre-commit = "^4.0"` as a required dev dependency in `pyproject.toml`. `poetry run pre-commit install` is the canonical portable setup command.
+- **Added** `pyrightconfig.json` vs `[tool.pyright]` guidance: `[tool.pyright]` is the default for local dev with conda + `prefer-active-python true`; `pyrightconfig.json` with explicit `pythonPath` is the fallback for CI environments where auto-detection fails.
+
+#### `infra-services.mdc` — Additive
+
+- **Added** session factory Protocol section: `PostgresSessionFactory` must be a `Protocol` (structural typing), not an abstract class. `@asynccontextmanager` on an abstract method causes pyright type errors. Protocol-based definition is also architecturally better — structural contract, no inheritance required, mock-friendly.
+
+#### `logging-loguru.mdc` — Additive
+
+- **Strengthened** message style section: explicit wrong/right examples showing that `{}` placeholders embed values into the message string (defeating structured logging), while named kwargs produce discrete queryable JSON fields. Rule: static label in message, all variable values as named kwargs.
+
+#### `repository-pattern.mdc` — Additive
+
+- **Added** `__tablename__` rule for ORM schema classes: do not use `@declared_attr __tablename__` on abstract base classes — it causes pyright type mismatches when subclasses set it as a plain string. Every concrete schema class must declare `__tablename__` explicitly.
+
+### Migration guide
+
+All changes are additive — no code changes required in consumer repos to adopt this version. Apply the new patterns going forward:
+
+1. Replace `Field(None, ...)` with `Field(default=None, ...)` across all Pydantic models
+2. Replace `Model(extra_field=...)` with `Model.model_validate({...})` for `extra="allow"` models
+3. Add `pre-commit = "^4.0"` to dev deps and switch to `poetry run pre-commit install`
+4. Replace `@declared_attr __tablename__` on abstract ORM bases with explicit declarations per concrete class
+5. Review any `is_configured()` usage — each case needs ADR justification or conversion to required settings
+
+---
+
+## v0.4.2
 
 ### Summary
 

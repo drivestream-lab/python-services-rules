@@ -47,6 +47,32 @@ class KafkaService(BaseInfraService):
         self._settings = KafkaSettings.get_instance()
 ```
 
+## Session factory — Protocol, not abstract class
+
+The session factory passed to repositories must be typed as a **`Protocol`**, not an abstract class or a concrete type. Decorating an abstract method with `@asynccontextmanager` causes pyright type errors because the decorator wraps the return type in a way that is incompatible with an abstract signature.
+
+```python
+# Correct — structural typing via Protocol
+from typing import Protocol, AsyncContextManager
+from sqlalchemy.ext.asyncio import AsyncSession
+
+class PostgresSessionFactory(Protocol):
+    def __call__(self) -> AsyncContextManager[AsyncSession]: ...
+```
+
+Benefits beyond pyright compliance:
+- Any callable matching this signature is a valid session factory — no inheritance required
+- Repositories and tests can be constructed with any mock that matches the shape
+- The contract is structural ("what it does"), not hierarchical ("what it inherits")
+
+Use this type in repository constructors:
+
+```python
+class DeviceRepository(BasePostgresRepository):
+    def __init__(self, session_factory: PostgresSessionFactory) -> None:
+        super().__init__(session_factory)
+```
+
 ## Related rules
 
 - **Layout:** `architecture.mdc`

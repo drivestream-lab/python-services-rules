@@ -131,6 +131,30 @@ The `@inject` decorator is still required on `__init__` (so the injector owns co
 
 - **Do not** call `FooSettings.get_instance()` inside service **methods** or after `__init__` — fetch once in the constructor, store in `self._settings`.
 
+### Settings and optional dependencies — `is_configured()` anti-pattern
+
+**Do not** make a required service dependency optional at the settings level using `is_configured()` guards. This violates **`fail-fast.mdc`** — the service silently degrades at runtime instead of failing at startup.
+
+```python
+# Anti-pattern — do not do this
+class ExternalApiSettings(BaseSettings):
+    base_url: Optional[str] = Field(default=None)   # silently optional
+
+    def is_configured(self) -> bool:
+        return bool(self.base_url)
+
+# Then in a business service:
+if self._external_client.is_configured():   # silent skip if not configured
+    await self._external_client.do_work(...)
+```
+
+**If the dependency is required for correct operation:** declare the setting as required (`base_url: str`, no default). The process will fail at settings load if the env var is missing — that is the correct behaviour.
+
+**If the dependency is genuinely optional by product design** (the feature works correctly without it): `is_configured()` is acceptable, but it must be:
+1. Documented in a PR or ADR explaining *why* the dependency is optional
+2. Logged at `WARNING` level when the skip path is taken so it is observable in production
+3. Tested — the "not configured" path must have a verify/test case
+
 ## Lifecycle and startup
 
 `initialize_all_services()` runs **two phases** (see `dependency_container.py`). Same method names on infra and business; **different purpose** — do not open external resources in business `initialize()`.
@@ -144,6 +168,24 @@ The `@inject` decorator is still required on `__init__` (so the injector owns co
 | **Fail-fast** | `await initialize()` fails if resources cannot start | `injector.get(Service)` fails if DI / `__init__` breaks; `await initialize()` fails if override raises |
 
 **Startup order:** (1) all `_INFRA_SERVICE_TYPES` → `injector.get()` then `await initialize()`; (2) all `_BUSINESS_SERVICE_TYPES` → `injector.get()` then `await initialize()`. Postgres must be first in the infra tuple.
+
+Both phases **must** call `await service.initialize()` — `injector.get()` (or `provide_service()`) only constructs the object; it does not call `initialize()`. Omitting the `await` silently skips all async startup work:
+
+```python
+# Correct — both phases follow the same two-step pattern
+async def initialize_all_services() -> None:
+    for cls in _INFRA_SERVICE_TYPES:
+        service = injector.get(cls)
+        await service.initialize()          # required — opens pools, connects clients
+
+    for cls in _BUSINESS_SERVICE_TYPES:
+        service = provide_service(cls)
+        await service.initialize()          # required — even if default impl only logs
+
+# Wrong — construction only, initialize() never called
+for cls in _BUSINESS_SERVICE_TYPES:
+    provide_service(cls)                    # DI construction only; initialize() skipped
+```
 
 **Shutdown:** business `close()` then infra `close()` (reverse order of infra list).
 

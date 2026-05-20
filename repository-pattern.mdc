@@ -56,6 +56,32 @@ See **`python-tooling.mdc`** for the canonical `.importlinter` contract. Adapt l
 - Share patterns via **`BasePostgresRepository`** (this repo) / **`BaseRepository`** rather than duplicating session/query boilerplate.
 - **`session_factory`** is **required** in the repository constructor (provided by **`RepositoryModule`** from **`PostgresService.get_session_factory()`**). Do not fall back to a global connection manager inside the base repository.
 
+## ORM schema — `__tablename__` on concrete classes only
+
+**Do not** define `__tablename__` on an abstract base ORM class using `@declared_attr`. When subclasses then set `__tablename__ = "table_name"` as a plain string, pyright flags a type mismatch because the base declared it as a descriptor type.
+
+```python
+# Wrong — @declared_attr on base causes pyright errors in subclasses
+class BaseSchema(DeclarativeBase):
+    @declared_attr
+    def __tablename__(cls) -> str:
+        return cls.__name__.lower()   # dead code — every subclass overrides this anyway
+
+class DeviceSchema(BaseSchema):
+    __tablename__ = "devices"         # pyright: type mismatch with declared_attr descriptor
+```
+
+```python
+# Correct — no __tablename__ on the abstract base; every concrete class declares it explicitly
+class BaseSchema(DeclarativeBase):
+    pass                              # no __tablename__ here
+
+class DeviceSchema(BaseSchema):
+    __tablename__ = "devices"         # explicit, clear, pyright-clean
+```
+
+Requiring each concrete schema to declare `__tablename__` explicitly also makes the table name visible at a glance without tracing up an inheritance chain.
+
 ## Services without a database
 
 - Tools / jobs may omit **`database/`**. Keep the same **separation idea**: persistence helpers + **business** orchestration; no ORM in the wrong layer.

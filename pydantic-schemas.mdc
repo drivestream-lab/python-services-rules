@@ -78,6 +78,52 @@ Use **`enum.Enum`** for any **closed vocabulary** shared across API, services, a
 - Use **`Field(..., description="...")`** for non-obvious fields.
 - Use **`field_validator`** / **`model_validator`** for invariants.
 
+### `Field()` — always use keyword form for defaults (pyright requirement)
+
+Always pass the default as a **keyword argument** to `Field()`. The positional form `Field(None, ...)` is not recognised as a default by pyright's Pydantic v2 stubs — pyright will treat the field as required and raise type errors at every call site.
+
+```python
+# Wrong — pyright treats this field as required (no recognised default)
+name: Optional[str] = Field(None, description="Display name")
+
+# Correct — pyright recognises the default and treats the field as optional
+name: Optional[str] = Field(default=None, description="Display name")
+```
+
+This applies to any default value, not just `None`:
+
+```python
+# Wrong
+status: str = Field("active", description="Current status")
+
+# Correct
+status: str = Field(default="active", description="Current status")
+```
+
+### `extra="allow"` models — use `model_validate` at construction sites
+
+When a model has `extra="allow"` (typically for variable-shape JSONB documents), pyright correctly rejects passing undeclared fields as `__init__` keyword arguments — the typed `__init__` signature only includes declared fields even when extra fields are allowed at runtime.
+
+Always use **`model_validate({...})`** to construct `extra="allow"` models with dynamic fields:
+
+```python
+class JobEventPayloadDocument(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    event_type: str
+
+# Wrong — pyright error: unexpected keyword argument
+doc = JobEventPayloadDocument(event_type="upload", vin_count=5, source="csv")
+
+# Correct — model_validate accepts arbitrary dict keys
+doc = JobEventPayloadDocument.model_validate({
+    "event_type": "upload",
+    "vin_count": 5,
+    "source": "csv",
+})
+```
+
+This applies at every call site that constructs such a model with dynamic keys. Static construction (only declared fields) can still use keyword arguments.
+
 ## Settings (`pydantic-settings`)
 
 - Shared **`BaseSettings`** with **`PREFIX`**, **`SettingsConfigDict(env_file=".env", ...)`**, and documented **`get_instance()`** when standardized.

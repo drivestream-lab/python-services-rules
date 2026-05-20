@@ -37,7 +37,7 @@ make check                  # all quality gates run against the conda env
 ## Static type checking (pyright)
 
 - Use **pyright** as the static type checker. Cursor / Pylance already runs pyright in the editor — CI must gate on the same tool so editor squiggles and CI failures are identical.
-- With conda + `virtualenvs.prefer-active-python true`, pyright auto-detects the active conda interpreter. Configure in **`pyproject.toml`**:
+- With conda + `virtualenvs.prefer-active-python true`, pyright auto-detects the active conda interpreter. The canonical config location is **`pyproject.toml`**:
   ```toml
   [tool.pyright]
   pythonVersion = "3.12"
@@ -46,6 +46,16 @@ make check                  # all quality gates run against the conda env
   # typeCheckingMode = "strict"     # new services: start strict from day one
   ```
   **Do not** add `venvPath` / `venv` — those point pyright at a `.venv` that does not exist in the conda setup and cause false "missing stubs" errors across all installed packages.
+
+- **`pyrightconfig.json` vs `[tool.pyright]`:** `[tool.pyright]` in `pyproject.toml` is the default for local dev with conda + `prefer-active-python true` (auto-detection works). Use a **`pyrightconfig.json`** at the repo root only when you need explicit interpreter binding (e.g. CI environments with a non-standard conda install path where auto-detection fails):
+  ```json
+  {
+    "pythonVersion": "3.12",
+    "pythonPath": "/path/to/conda/envs/<env-name>/bin/python",
+    "typeCheckingMode": "basic"
+  }
+  ```
+  `pyrightconfig.json` takes precedence over `[tool.pyright]` when both exist — do not maintain both.
 - **Existing services**: start at `basic` and tighten incrementally — add `reportMissingParameterType`, `reportUnknownVariableType`, etc. one at a time as the codebase is cleaned up.
 - **New services**: use `strict` from the first commit. No exceptions without documented justification in `pyproject.toml` comments.
 - **Do not** widen types to `Any` or add `# type: ignore` to silence pyright — fix the model or narrow the type (see **`strong-typing.mdc`**).
@@ -138,8 +148,13 @@ repos:
         pass_filenames: false
 ```
 
-- After cloning, **activate the conda env first**, then run **`pre-commit install`** — hooks must be installed into the active conda env so they can resolve all tools.
-- CI runs **`pre-commit run --all-files`** as a separate check step.
+- **`pre-commit` must be a dev dependency** in `pyproject.toml` — not just a globally installed tool. This ensures `poetry run pre-commit` works portably on any machine after `poetry install`:
+  ```toml
+  [tool.poetry.group.dev.dependencies]
+  pre-commit = "^4.0"
+  ```
+- After cloning, **activate the conda env first**, then run **`poetry run pre-commit install`** — hooks must be installed into the active conda env so they can resolve all tools.
+- CI runs **`poetry run pre-commit run --all-files`** as a separate check step.
 
 ## Local developer workflow (Makefile)
 

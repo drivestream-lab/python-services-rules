@@ -44,11 +44,25 @@ alwaysApply: true
 ## Message style
 
 - Prefer loguru **placeholders**: **`logger.info("User {} logged in", user_id)`** instead of f-strings for high-volume paths (defer formatting when the level is disabled).
-- Pass structured fields as **keyword arguments** to log calls so they appear as discrete JSON fields in production — do not embed them only inside the message string:
-  ```python
-  logger.info("Device created", device_id=str(device_id), tenant_id=str(tenant_id))
-  # → { "message": "Device created", "device_id": "...", "tenant_id": "...", ... }
-  ```
+- Pass structured fields as **keyword arguments** to log calls so they appear as **discrete queryable JSON fields** in production output. IDs, status values, and domain identifiers must always be kwargs — not embedded in the message string.
+
+### `{}` placeholders vs kwargs — critical distinction for structured logging
+
+`{}` placeholders are convenient for human-readable text mode. In JSON mode they **defeat structured logging** — the value is interpolated into the `message` string and is no longer a queryable field:
+
+```python
+# Wrong for structured logging — campaign_id disappears into message text
+logger.info("Created campaign {} for tenant {}", campaign.id, tenant_id)
+# JSON output: {"message": "Created campaign abc-123 for tenant xyz-456"}
+# Cannot filter by campaign_id or tenant_id in Datadog / Loki
+
+# Correct — discrete queryable fields
+logger.info("Created campaign", campaign_id=str(campaign.id), tenant_id=str(tenant_id))
+# JSON output: {"message": "Created campaign", "campaign_id": "abc-123", "tenant_id": "xyz-456"}
+# Can filter: @campaign_id:abc-123 AND @tenant_id:xyz-456
+```
+
+**Rule:** keep the message string a static human-readable label. Put every variable value — IDs, counts, statuses, resource names — as a **named kwarg**. Both text and JSON modes render correctly; only JSON mode makes the values queryable.
 
 ## Correlation / tracing
 
