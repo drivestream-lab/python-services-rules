@@ -6,6 +6,22 @@ Format: **Breaking** changes require code changes in consumer repos before or al
 
 ---
 
+## v0.5.3
+
+### Summary
+
+Remove `verify` target from the canonical Makefile template. Verify invocation is service-specific and belongs in each service repo's `tests/README.md`.
+
+### Changes
+
+#### `python-tooling.mdc` — Corrective
+
+- **Removed** `verify` target from canonical Makefile template — invocation path, env name, and whether conda is needed varies per service.
+- **Updated** tooling vs runtime table: `verify_all` rows now show `.venv/bin/python -m tests.verify.verify_all` directly (no `make verify`); `conda run -n <env>` noted as the correct pattern when conda is needed (not `conda activate` which does not work in Makefile subshells).
+- **Updated** business-flow verification section: document invocation in `tests/README.md` per service, not in the shared Makefile.
+
+---
+
 ## v0.5.2
 
 ### Summary

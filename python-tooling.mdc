@@ -64,9 +64,10 @@ setup:
 |---------|-----------|------------|
 | `make check`, pyright, ruff, pre-commit | `.venv` only — no conda activation | `make check` from any shell |
 | `pytest` (unit, no live infra) | `.venv` only | `make test` |
-| `verify_all` (live Kafka, Postgres, EMQX) | conda activated | `conda activate <env> && make verify` |
+| `verify_all` (pure Python, live HTTP APIs) | `.venv` only | `.venv/bin/python -m tests.verify.verify_all` |
+| `verify_all` (needs native conda packages) | conda env | `conda run -n <env-name> .venv/bin/python -m tests.verify.verify_all` |
 
-The toolchain is fully self-contained in `.venv`. Reserve conda activation for flows that genuinely need native drivers or live infra connections.
+The toolchain is fully self-contained in `.venv`. The `verify_all` invocation is service-specific — document the exact command in `tests/README.md`. **`conda activate` does not work inside Makefile targets** — use `conda run -n <env>` when conda env access is needed. The `verify` target is intentionally absent from the canonical Makefile: invocation varies per service and belongs in `tests/README.md`.
 
 ---
 
@@ -207,7 +208,7 @@ repos:
 Every service repo must provide a **`Makefile`** at the root. The canonical targets:
 
 ```makefile
-.PHONY: setup check format lint types layers test verify
+.PHONY: setup check format lint types layers test
 
 setup:
 	@bash scripts/setup_dev.sh
@@ -229,9 +230,6 @@ layers:
 
 test:
 	.venv/bin/pytest
-
-verify:
-	conda activate <env-name> && .venv/bin/python -m tests.verify.verify_all
 ```
 
 **Workflow:**
@@ -253,7 +251,7 @@ verify:
 ## Business-flow verification
 
 - Use **`tests/verify/`** for smoke / end-to-end business flows (see **`testing-verify-flows.mdc`**), separate from fast unit tests.
-- Verify flows that hit live infra require conda activated (see **Tooling vs runtime env** above).
+- Document the exact invocation command in `tests/README.md` for each service repo — not in the shared Makefile template.
 
 ---
 
