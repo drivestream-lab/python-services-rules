@@ -6,6 +6,36 @@ Format: **Breaking** changes require code changes in consumer repos before or al
 
 ---
 
+## v0.5.2
+
+### Summary
+
+Complete rewrite of `python-tooling.mdc` environment and tooling guidance. Eliminates the Option A / Option B split — one approach, fully documented, with all 7 practitioner feedback points incorporated.
+
+### Changes
+
+#### `python-tooling.mdc` — Additive / Corrective
+
+- **Baked in single approach**: conda for Python version, explicit `python -m venv .venv` + `poetry env use .venv/bin/python` for the toolchain env. No options, no per-machine prerequisites, deterministic.
+- **Added `make setup` + `scripts/setup_dev.sh`**: canonical first-time onboarding command. Script handles `.venv` creation, `poetry install`, and `pre-commit install` in one shot.
+- **Fixed pre-commit hooks**: replaced `RobertCraigie/pyright-python` remote hook (broken — creates an isolated sandbox with no project package visibility) and `language: system` bare entry for import-linter (breaks in non-interactive shells) with `local` hooks calling `.venv/bin/pyright` and `.venv/bin/lint-imports` directly.
+- **Fixed `pyrightconfig.json`**: added `"exclude": [".venv", "postgres_migrations"]` — without this pyright scans all installed packages as project source (5s → 2+ min per check).
+- **Removed `pythonPlatform` from dev config**: auto-detect is correct for local dev. `"pythonPlatform": "Linux"` belongs only in CI-specific config.
+- **Documented `.venv` creation failure mode**: poetry installed inside conda env does not auto-create `.venv` — explicit `python -m venv .venv && poetry env use` is required.
+- **Added tooling vs runtime env split**: `.venv` owns the toolchain (no conda needed); conda is activated only for live-infra verify flows.
+- **Fixed pre-commit install instruction**: no conda activation needed — `.venv/bin/pre-commit install` is self-contained. `make setup` handles it.
+- **Updated Makefile targets**: use `.venv/bin/<tool>` directly instead of `poetry run <tool>` for determinism.
+
+### Migration guide
+
+- Replace `.pre-commit-config.yaml` hooks: remove `RobertCraigie/pyright-python` and bare `lint-imports` entries; add local hooks pointing to `.venv/bin/pyright` and `.venv/bin/lint-imports`.
+- Add `"exclude": [".venv", "postgres_migrations"]` to `pyrightconfig.json`.
+- Remove `pythonPlatform` from local pyright config.
+- Add `scripts/setup_dev.sh` and `make setup` target.
+- Update Makefile targets to use `.venv/bin/<tool>` instead of `poetry run <tool>`.
+
+---
+
 ## v0.5.1
 
 ### Summary

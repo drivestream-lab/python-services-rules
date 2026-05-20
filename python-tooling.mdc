@@ -5,91 +5,111 @@ alwaysApply: true
 
 # Tooling
 
-## Environment management (conda + Poetry)
+## Environment setup (conda + Poetry + `.venv`)
 
-**conda** manages the Python interpreter and environment isolation. **Poetry** manages dependencies (packages, `pyproject.toml`, lock file) within that environment.
+**conda** controls the Python interpreter version. **Poetry** manages all Python packages via `pyproject.toml` and `poetry.lock`. A project-local **`.venv`** is created explicitly so the toolchain (pyright, ruff, pre-commit) is always self-contained and works without conda being activated.
 
-Two valid approaches exist. Choose one per service and commit to it — do not mix within a repo.
+### Why `.venv` is created explicitly
 
-### Option A — Single env (preferred for new services)
-
-```bash
-# One-time per machine — Poetry uses the active conda interpreter, no .venv created
-poetry config virtualenvs.prefer-active-python true
-```
-
-Per-session:
-```bash
-conda activate <env-name>
-poetry install              # packages install directly into the conda env
-make check                  # all tools use the conda env automatically
-```
-
-**Failure mode to be aware of:** If `prefer-active-python true` has not been set and a developer runs `poetry install`, Poetry creates a `.venv` as usual. With no `venvPath`/`venv` in pyright config (Option A omits them), pyright falls back to the system Python and raises `reportMissingImports` for every installed package. The fix is to run `poetry config virtualenvs.prefer-active-python true` then `poetry install` again — but the error is not self-diagnosing. Document this in the service repo's **`README.md`** as a prerequisite.
-
-### Option B — Dual env (lower footgun risk, suitable for existing services)
-
-Poetry creates `.venv` at repo root as normal. `pyrightconfig.json` points pyright at it explicitly — no per-machine config required.
+When poetry is installed inside a conda env, it detects the conda env as its virtualenv and will not create `.venv` automatically — even with `virtualenvs.in-project true`. To guarantee a project-local `.venv`, create it directly:
 
 ```bash
-conda activate <env-name>   # conda still controls the Python version
-poetry install              # creates .venv inside the project
+conda activate <env-name>           # activate the conda env for the right Python version
+python -m venv .venv                # create .venv using the conda Python
+poetry env use .venv/bin/python     # tell Poetry to use this .venv
+poetry install                      # install all deps into .venv
 ```
 
-`pyrightconfig.json` at the repo root:
-```json
-{
-  "pythonVersion": "3.12",
-  "venvPath": ".",
-  "venv": ".venv",
-  "typeCheckingMode": "basic"
-}
+After this, `.venv` is the single toolchain home. All `make` targets, pre-commit hooks, and pyright use it. Conda only needs to be activated when running live-infra flows (see **Tooling vs runtime env** below).
+
+### First-time setup: `make setup`
+
+Every service repo provides a `scripts/setup_dev.sh` and a `make setup` target that runs it. This is the single onboarding command:
+
+```bash
+make setup   # run once after cloning
 ```
 
-**Self-contained:** works immediately after `poetry install` on any machine with no prerequisites beyond conda + Poetry. Fails loudly only if `poetry install` has not been run (correct behaviour). No silent fallback to the wrong Python.
+Canonical `scripts/setup_dev.sh`:
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-**When to use Option B:** existing services already using `.venv`; teams that prefer zero per-machine prerequisites; CI environments where interpreter auto-detection is unreliable.
+echo "[setup] Creating .venv with current conda Python..."
+python -m venv .venv
 
-**Note:** `pyrightconfig.json` takes precedence over `[tool.pyright]` in `pyproject.toml` when both exist — do not maintain both. Use one or the other per service.
+echo "[setup] Registering .venv with Poetry..."
+poetry env use .venv/bin/python
+
+echo "[setup] Installing dependencies..."
+poetry install
+
+echo "[setup] Installing pre-commit hooks..."
+.venv/bin/pre-commit install
+
+echo "[setup] Done. Run 'make check' to verify."
+```
+
+Make target:
+```makefile
+setup:
+	@bash scripts/setup_dev.sh
+```
+
+`scripts/setup_dev.sh` is committed to the repo. README setup instructions point here — not to a sequence of manual commands.
+
+### Tooling vs runtime env
+
+| Context | Env needed | How to run |
+|---------|-----------|------------|
+| `make check`, pyright, ruff, pre-commit | `.venv` only — no conda activation | `make check` from any shell |
+| `pytest` (unit, no live infra) | `.venv` only | `make test` |
+| `verify_all` (live Kafka, Postgres, EMQX) | conda activated | `conda activate <env> && make verify` |
+
+The toolchain is fully self-contained in `.venv`. Reserve conda activation for flows that genuinely need native drivers or live infra connections.
+
+---
 
 ## Format and lint
 
 - **Black** + **Ruff**; line length **100**; target **Python 3.12** (match **`pyproject.toml`**).
 - Run on **`src/`** and **`tests/`** (or project convention) in CI and locally before push.
 
+---
+
 ## Static type checking (pyright)
 
-- Use **pyright** as the static type checker. Cursor / Pylance already runs pyright in the editor — CI must gate on the same tool so editor squiggles and CI failures are identical.
-- Pyright config location and content depend on which environment option the service uses:
-  - **Option A** (single env, no `.venv`) — use `[tool.pyright]` in `pyproject.toml`; omit `venvPath`/`venv`:
-    ```toml
-    [tool.pyright]
-    pythonVersion = "3.12"
-    pythonPlatform = "Linux"
-    typeCheckingMode = "basic"        # existing services: start here
-    # typeCheckingMode = "strict"     # new services: start strict from day one
-    ```
-  - **Option B** (dual env, `.venv` present) — use `pyrightconfig.json` at repo root; include `venvPath`/`venv`:
-    ```json
-    {
-      "pythonVersion": "3.12",
-      "venvPath": ".",
-      "venv": ".venv",
-      "typeCheckingMode": "basic"
-    }
-    ```
-  Do not mix — if `pyrightconfig.json` exists it takes precedence over `[tool.pyright]`.
-- **Existing services**: start at `basic` and tighten incrementally — add `reportMissingParameterType`, `reportUnknownVariableType`, etc. one at a time as the codebase is cleaned up.
-- **New services**: use `strict` from the first commit. No exceptions without documented justification in `pyproject.toml` comments.
+Use **pyright** as the static type checker. Cursor / Pylance already runs pyright in the editor — CI gates on the same tool so editor squiggles and CI failures are identical.
+
+Configure via **`pyrightconfig.json`** at the repo root (pyright's native format, takes precedence over `[tool.pyright]` in `pyproject.toml`):
+
+```json
+{
+  "pythonVersion": "3.12",
+  "venvPath": ".",
+  "venv": ".venv",
+  "typeCheckingMode": "basic",
+  "exclude": [".venv", "postgres_migrations"]
+}
+```
+
+**Notes:**
+- `venvPath` + `venv` point pyright at the project `.venv` — it sees all installed packages. Without these, pyright falls back to the system Python and reports `reportMissingImports` for every dependency.
+- `exclude` is mandatory. Without it, pyright scans every file inside `.venv` as project source — turning a 5-second check into a 2+ minute one.
+- Do **not** set `pythonPlatform` in local config — let pyright auto-detect the current OS. Set `"pythonPlatform": "Linux"` only in a CI-specific override (`pyrightconfig.ci.json` or via env var) where the container is genuinely Linux.
+- **Existing services**: use `"typeCheckingMode": "basic"` and tighten incrementally.
+- **New services**: start at `"strict"` from the first commit.
 - **Do not** widen types to `Any` or add `# type: ignore` to silence pyright — fix the model or narrow the type (see **`strong-typing.mdc`**).
 
 ### What pyright enforces for this codebase
 
 - **Pydantic boundary**: catches returning `dict` where a Pydantic model is declared, missing field access after `model_validate`, `None`-safety on `Optional` fields.
 - **Enum exhaustiveness**: flags non-exhaustive `match` on `StrEnum` types — adding a new enum value immediately shows every handler that needs updating.
-- **ORM isolation**: if ORM types are typed as internal-only (not re-exported from `database/`), pyright will flag accidental use in business or API layers.
-- **Refactoring safety**: renaming a Pydantic field produces an instant list of every broken call site across the codebase.
+- **ORM isolation**: if ORM types are typed as internal-only (not re-exported from `database/`), pyright flags accidental use in business or API layers.
+- **Refactoring safety**: renaming a Pydantic field produces an instant list of every broken call site.
 - **DI constructor mismatches**: `@inject` constructor type mismatches caught at write time, not at `injector.get()` runtime.
+
+---
 
 ## Architectural layer enforcement (import-linter)
 
@@ -131,17 +151,15 @@ layers =
 
 Together, `import-linter` closes the **import boundary** gap and pyright closes the **type signature** gap. Neither alone is sufficient.
 
-Add `import-linter` to dev dependencies:
-
-```bash
-poetry add --group dev import-linter
-```
-
 Adapt the `.importlinter` layers to match each service repo's actual package paths (e.g. `src.database.redis.repository` when Redis repos exist).
+
+---
 
 ## Pre-commit hooks
 
-Every repo must have a **`.pre-commit-config.yaml`** at the root. Hooks run at commit time so format, lint, type, and layer errors are caught before they reach CI.
+Every repo must have a **`.pre-commit-config.yaml`** at the root. Hooks run at commit time — format, lint, type, and layer errors are caught before they reach CI.
+
+**Critical:** pyright and import-linter must be **`local` hooks** that call tools from the project's own `.venv`. Remote hooks (e.g. `RobertCraigie/pyright-python`) install into an isolated sandbox with no visibility of the project's installed packages — every import produces `reportMissingImports`. `language: system` with a bare tool name also fails in non-interactive shells where `.venv` is not on PATH.
 
 ```yaml
 repos:
@@ -157,84 +175,101 @@ repos:
       - id: ruff
         args: ["--fix"]
 
-  - repo: https://github.com/RobertCraigie/pyright-python
-    rev: "v1.x.x"
-    hooks:
-      - id: pyright
-
   - repo: local
     hooks:
+      - id: pyright
+        name: pyright
+        entry: .venv/bin/pyright
+        language: system
+        types: [python]
+        pass_filenames: false
+
       - id: import-linter
         name: import-linter
-        entry: lint-imports
+        entry: .venv/bin/lint-imports
         language: system
         pass_filenames: false
 ```
 
-- **`pre-commit` must be a dev dependency** in `pyproject.toml` — not just a globally installed tool. This ensures `poetry run pre-commit` works portably on any machine after `poetry install`:
+- **`pre-commit` must be in dev dependencies** so `poetry install` makes it available in `.venv`:
   ```toml
   [tool.poetry.group.dev.dependencies]
   pre-commit = "^4.0"
   ```
-- After cloning, **activate the conda env first**, then run **`poetry run pre-commit install`** — hooks must be installed into the active conda env so they can resolve all tools.
-- CI runs **`poetry run pre-commit run --all-files`** as a separate check step.
+- Pre-commit install is handled by **`make setup`** / `scripts/setup_dev.sh` — no manual `pre-commit install` step needed.
+- No conda activation required to run hooks — `.venv` is self-contained.
+- CI runs **`.venv/bin/pre-commit run --all-files`** as a separate check step.
+
+---
 
 ## Local developer workflow (Makefile)
 
-Every service repo must provide a **`Makefile`** at the root with a canonical `check` target that runs all quality gates locally — **before committing**. This catches violations at write time, not at pre-commit or CI.
+Every service repo must provide a **`Makefile`** at the root. The canonical targets:
 
 ```makefile
-.PHONY: check format lint types layers test
+.PHONY: setup check format lint types layers test verify
+
+setup:
+	@bash scripts/setup_dev.sh
 
 # Run everything — use this before committing
 check: format lint types layers
 
 format:
-	poetry run black --line-length 100 src/ tests/
+	.venv/bin/black --line-length 100 src/ tests/
 
 lint:
-	poetry run ruff check --fix src/ tests/
+	.venv/bin/ruff check --fix src/ tests/
 
 types:
-	poetry run pyright
+	.venv/bin/pyright
 
 layers:
-	poetry run lint-imports
+	.venv/bin/lint-imports
 
 test:
-	poetry run pytest
+	.venv/bin/pytest
+
+verify:
+	conda activate <env-name> && .venv/bin/python -m tests.verify.verify_all
 ```
 
 **Workflow:**
-1. Write code in Cursor — pyright catches **type violations in real-time** as you type (red squiggles).
-2. Run **`make check`** before committing — catches import-linter layer violations, ruff issues, and any pyright gaps the editor missed.
-3. **`git commit`** — pre-commit hooks run as the automated safety net.
-4. **CI** — final gate; same tools, same config.
+1. Clone repo → `make setup` (once).
+2. Write code in Cursor — pyright catches **type violations in real-time** (red squiggles).
+3. Run **`make check`** before committing — catches layer violations, lint, and type errors.
+4. **`git commit`** — pre-commit hooks run automatically as the safety net.
+5. **CI** — final gate; same tools, same `.venv`.
 
-The `check` target is the single command engineers remember. It must pass cleanly before a PR is opened.
+`make check` must pass cleanly before a PR is opened.
+
+---
 
 ## Tests
 
 - **pytest**; set **`testpaths`** (e.g. **`["tests"]`**).
-- Set **`pythonpath = ["."]`** (or equivalent) so **`from src....`** imports work **without** an editable install — same as local **`poetry run`**.
+- Set **`pythonpath = ["."]`** (or equivalent) so **`from src....`** imports work without an editable install.
 
 ## Business-flow verification
 
 - Use **`tests/verify/`** for smoke / end-to-end business flows (see **`testing-verify-flows.mdc`**), separate from fast unit tests.
+- Verify flows that hit live infra require conda activated (see **Tooling vs runtime env** above).
+
+---
 
 ## Dependencies
 
-- **conda** owns the Python interpreter version. **Poetry** owns all Python packages — application deps and dev tools — via `pyproject.toml` and `poetry.lock`.
+- **conda** owns the Python interpreter version. **Poetry** owns all Python packages via `pyproject.toml` and `poetry.lock`.
 - Do not install application packages via `conda install` — keep all Python dependencies in `pyproject.toml` so the lock file is the single source of truth.
 - Prefer **pinned ranges** in Poetry aligned with your stack (e.g. pydantic v2, pydantic-settings, loguru, injector when using DI).
 
 ### `environment.yml` — required only for native dependencies
 
-`pyproject.toml`'s Python version constraint (e.g. `python = ">=3.12,<4.0"`) already enforces the interpreter version at `poetry install` time with a clear failure if the wrong Python is active — no `environment.yml` needed for version pinning on pure Python services.
+`pyproject.toml`'s Python version constraint (e.g. `python = ">=3.12,<4.0"`) enforces the interpreter version at `poetry install` time with a clear failure if the wrong Python is active — no `environment.yml` needed for pure Python services.
 
-**`environment.yml` (or `conda-lock.yml`) is required when** the service has native dependencies managed by conda: CUDA, system libraries, compiled C extensions, or packages not available on PyPI. Those genuinely require conda for package resolution and the env spec must be committed.
+**`environment.yml` is required when** the service has native dependencies managed by conda: CUDA, system libraries, compiled C extensions, or packages not available on PyPI.
 
-**For pure Python services** where Poetry manages all dependencies: `environment.yml` is optional. The `pyproject.toml` Python constraint is the version enforcement mechanism.
+---
 
 ## Related rules
 
