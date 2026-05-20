@@ -29,7 +29,7 @@ The `BaseInfraService` async lifecycle (`initialize` / `close` / `health_check`)
 
 ### All services — unified `@inject` pattern
 
-**Always** use **`@inject`** on **`__init__`** for every service — infra, business, and stateless helpers. Collaborators (repos, infra services, settings) are injected as constructor parameters.
+**Always** use **`@inject`** on **`__init__`** for every service — infra, business, and stateless helpers. Collaborators (repos, other infra services) are injected as constructor parameters. Settings are **not** injected — see the Settings section below.
 
 **Business service:**
 ```python
@@ -53,9 +53,9 @@ from injector import inject
 
 class PostgresService(BaseInfraService):
     @inject
-    def __init__(self, settings: AppSettings) -> None:
+    def __init__(self) -> None:
         super().__init__()
-        self._settings = settings
+        self._settings = AppSettings.get_instance()  # settings fetched directly, not injected
 
     async def initialize(self) -> None:
         self._pool = await asyncpg.create_pool(self._settings.database_url)
@@ -112,10 +112,24 @@ Do not construct heavy singletons (pools, clients) inside arbitrary business met
 
 ### Settings (env-backed singletons)
 
-- **`AppSettings`**, **`DefinitionParseSettings`**, **`S3Settings`**, **`LLMSettings`**, etc. are **process singletons** that remain on the `FooSettings.get_instance()` pattern — they are not services with lifecycle, they are configuration bags loaded at startup.
-- **Infra and business services** receive settings **via `@inject`** — `AppSettings` is bound in `ConfigModule` and injected into service constructors.
-- **Do not** call `FooSettings.get_instance()` inside service **methods** or API routers (except bootstrap entry such as `create_app()` / `main.py`).
-- **Do not** add a `@provider` in `ConfigModule` for every settings class unless injection is explicitly needed; prefer a simple `binder.bind(AppSettings, to=AppSettings.get_instance(), scope=singleton)` so injector can resolve it as a collaborator.
+Settings classes (`AppSettings`, `KafkaSettings`, `S3Settings`, `CrateDBSettings`, etc.) are **configuration bags**, not lifecycle-managed services. They follow a **completely separate singleton pattern** from DI:
+
+- **Always** access them via `FooSettings.get_instance()` — directly, without going through the injector.
+- **Never** bind settings classes in `ConfigModule` or any DI module — they are not part of the injector graph.
+- **Never** add a `@provider` or `binder.bind()` entry for a settings class — doing so is the wrong pattern even if it works.
+- **Never** declare a settings type as an `@inject` constructor parameter on a service — receive the instance directly in `__init__` instead.
+
+```python
+class KafkaService(BaseInfraService):
+    @inject
+    def __init__(self) -> None:
+        super().__init__()
+        self._settings = KafkaSettings.get_instance()   # correct
+```
+
+The `@inject` decorator is still required on `__init__` (so the injector owns construction), but settings are fetched via `get_instance()` inside the constructor body — **not injected as parameters**.
+
+- **Do not** call `FooSettings.get_instance()` inside service **methods** or after `__init__` — fetch once in the constructor, store in `self._settings`.
 
 ## Lifecycle and startup
 

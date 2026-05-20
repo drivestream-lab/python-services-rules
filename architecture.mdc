@@ -70,11 +70,11 @@ See **`python-tooling.mdc`** for the canonical `.importlinter` contract and pre-
 - **`api/auth/`** — **optional**; JWT route helpers and/or identity login proxy for verify-only services. Paths must match **`public_paths`** in **`app.py`**.
 - Dependencies shared across v1 routes live in **`api/v1/dependencies.py`**; auth helpers live under **`api/auth/`** when present.
 
-## DriveStream service plumbing parity
+## Service plumbing parity
 
-Keep the **non-domain shell** aligned across Python HTTP services (Kavach, Abhilekh, Parichay, …) so feature work stays in **`business_services`**, **`models`**, and route modules—not in one-off **`app.py`** wiring.
+Keep the **non-domain shell** aligned across all Python HTTP services in the platform so feature work stays in **`business_services`**, **`models`**, and route modules — not in one-off **`app.py`** wiring.
 
-- **`src/common/auth/`** — **Verify** Parichay-issued JWTs on protected routes (see **JWT verification** below). **`issuance.py`** belongs only on the **issuer** (Parichay). **Not** outbound HTTP—identity clients live in **`infra_services/`**.
+- **`src/common/auth/`** — **Verify** platform-issued JWTs on protected routes (see **JWT verification** below). **`issuance.py`** belongs only on the **issuer service** (your identity service). **Not** outbound HTTP — identity clients live in **`infra_services/`**.
 - **`src/app.py`** — Thin composition: **lifespan** (`configure_container` → **`initialize_all_services`** → **`close_all_services`**), **AuthMiddleware** with **`public_paths`** for **actually mounted** paths, **CORS**, request-id / correlation middleware, **`BaseAppException`** handler, then routers in stable order: **health** → **internal** (if present) → **ops/auth routers as documented in that repo** → **`api_router`** at **`/api/v1`**.
 - **`src/api/v1/`** — Bearer-protected product API.
 
@@ -82,16 +82,16 @@ Exact copy-paste across repos is optional; **same layout, names, and responsibil
 
 ## JWT verification (non-issuer services)
 
-**Parichay** issues platform/tenant JWTs. Other HTTP services **verify** only unless they are the issuer.
+The **identity service** (issuer) issues platform/tenant JWTs. All other HTTP services **verify** only — they are not issuers.
 
 | Layer | Responsibility |
 |-------|----------------|
 | **`common/auth/`** | **`AuthConfig`**, **`AuthMiddleware`**, RS256 public PEM from **`JWT_PUBLIC_KEY_PATH`** |
-| **`infra_services/`** | Outbound HTTP to Parichay (login proxy, etc.)—never inside middleware |
+| **`infra_services/`** | Outbound HTTP to the identity service (login proxy, etc.) — never inside middleware |
 | **`api/auth/`** (optional) | Route deps + optional login proxy; models in **`src/models/`** |
 | **`exceptions/`** | **`UnauthorizedError`** (401/403) for consistent API envelope |
 
-**Middleware contract:** set **`request.state.auth`** with **`user_id`**, **`tenant_id`**, **`role`**; add **`owner_id`** when the token role is owner-style (per Parichay claim shapes). Use structured **401** JSON with **`UNAUTHORIZED`**.
+**Middleware contract:** set **`request.state.auth`** with **`user_id`**, **`tenant_id`**, **`role`**; add **`owner_id`** when the token role is owner-style (per your identity service's claim shapes). Use structured **401** JSON with **`UNAUTHORIZED`**.
 
 **`app.py` when auth is on:** fail fast if RS256 / public key path is misconfigured; **`public_paths`** must list **this repo's mounted paths only** (exact or prefix). Include **`/internal`** only if this service exposes **`api/internal/`**.
 

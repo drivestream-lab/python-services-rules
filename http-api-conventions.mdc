@@ -5,7 +5,7 @@ alwaysApply: true
 
 # HTTP API conventions (FastAPI)
 
-These rules keep **`src/api/`** contracts **uniform**, **documentable**, and aligned with sibling DriveStream HTTP services (e.g. **Kavach**: creates/updates use **Pydantic JSON bodies** from **`src/models/`**; **query** is for list/filter/pagination on **GET**).
+These rules keep **`src/api/`** contracts **uniform**, **documentable**, and consistent across sibling services in the platform (creates/updates use **Pydantic JSON bodies** from **`src/models/`**; **query** is for list/filter/pagination on **GET**).
 
 ## PUT — full writes use **body only**
 

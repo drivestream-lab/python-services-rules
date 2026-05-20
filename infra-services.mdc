@@ -13,7 +13,7 @@ Typical **infra** responsibilities:
 
 - **Database**: connection pools, engine/session factory, transaction helpers used by repositories (not business logic itself).
 - **Third-party HTTP APIs**: typed clients, auth, retries, base URLs.
-- **Sibling DriveStream internal APIs**: typed HTTP clients to another service's **`/internal/v1/...`** (e.g. registry or identity clients). These are **outbound** callers—not **`api/internal/`** routes in *this* repo unless this service is an internal **provider** (see **`architecture.mdc`** service profiles).
+- **Sibling service internal APIs**: typed HTTP clients to another platform service's **`/internal/v1/...`** (e.g. registry or identity clients). These are **outbound** callers — not **`api/internal/`** routes in *this* repo unless this service is an internal **provider** (see **`architecture.mdc`** service profiles).
 - **LLMs / model providers**: SDK wrappers, chat completion clients, embedding clients.
 - **Message buses / queues**: Kafka, Redis pub/sub, MQTT publishers/consumers as **clients**.
 - **Object storage**, **email/SMS** gateways, **search** clients—same idea.
@@ -36,8 +36,16 @@ Typical **infra** responsibilities:
 
 ## Settings
 
-- Receive settings **via `@inject`** — `AppSettings` (or domain-specific settings) are bound in `ConfigModule` and injected into the infra service constructor.
-- Do not call `FooSettings.get_instance()` inside infra **methods**; settings are assigned in `__init__` and used from `self._settings` throughout the lifecycle.
+- Settings are **not** part of the DI graph — **do not** inject them as constructor parameters and **do not** bind them in `ConfigModule`.
+- Call `FooSettings.get_instance()` **once** inside `__init__` and store on `self._settings`; do not call it again in methods or lifecycle hooks.
+
+```python
+class KafkaService(BaseInfraService):
+    @inject
+    def __init__(self) -> None:
+        super().__init__()
+        self._settings = KafkaSettings.get_instance()
+```
 
 ## Related rules
 

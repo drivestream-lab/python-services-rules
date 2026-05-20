@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Code guideline modules (index)
 
-These **`.mdc`** files govern **architectural patterns** for DriveStream Python HTTP services. They live in the **`python-services-rules`** repository and are consumed via a **git submodule** at each service repo's **`.cursor/rules/`** (this directory when mounted).
+These **`.mdc`** files govern **architectural patterns** for Python microservices. They live in the **`python-services-rules`** repository and are consumed via a **git submodule** at each service repo's **`.cursor/rules/`** (this directory when mounted).
 
 **Product-specific** requirements, ADRs, route catalogs, and env URLs belong in each service repo under **`docs/specification/`** and **README**—not in this package.
 
@@ -16,15 +16,15 @@ These **`.mdc`** files govern **architectural patterns** for DriveStream Python 
 | **`architecture.mdc`** | Layered **`src/`** layout, service profiles, JWT verification, **`main.py`** vs **`app.create_app()`** |
 | **`fail-fast.mdc`** | **Fail fast**; avoid defensive / silent recovery without approval |
 | **`python-imports.mdc`** | **All imports at top of file**; DI bootstrap exception |
-| **`dependency-injection.mdc`** | **`injector`**, **`_INFRA_SERVICE_TYPES`**, init/shutdown; settings in service **`__init__`** |
+| **`dependency-injection.mdc`** | **`injector`**, unified **`@inject`** for all services, init/shutdown lifecycle |
 | **`infra-services.mdc`** | DB stack, third-party APIs, sibling internal HTTP clients, buses |
 | **`repository-pattern.mdc`** | **Business → repo → ORM only**; JSONB + Pydantic at repo boundary |
 | **`pydantic-schemas.mdc`** | **Pydantic not Dict**; **`_metadata`**; domain enums |
 | **`strong-typing.mdc`** | Annotations, boundaries, JSONB typing |
 | **`database-migrations.mdc`** | **Alembic**, hand-written revisions, human-owned versions |
 | **`testing-verify-flows.mdc`** | verify / debug / pytest methodology |
-| **`logging-loguru.mdc`** | **`get_logger`**, **`setup_logging`**, correlation |
-| **`python-tooling.mdc`** | Black, Ruff, pytest, **`pythonpath`** |
+| **`logging-loguru.mdc`** | **`get_logger`**, **`setup_logging`**, structured JSON, correlation |
+| **`python-tooling.mdc`** | Black, Ruff, **pyright**, **import-linter**, **Makefile**, pytest, **`pythonpath`** |
 | **`http-api-conventions.mdc`** | REST/FastAPI body/query/path conventions |
 
 ## Per-repository product documentation
@@ -41,7 +41,7 @@ Each service repo should provide (not in this package):
 
 - **No emojis** in code or logs; use tags such as **[OK]**, **[ERROR]**, **[WARNING]**, **[INFO]** when needed.
 - **Service imports:** import service classes and **`get_*_service`** getters from **service modules**, not from package **`__init__.py`**.
-- **Reference implementation:** **Abhilekh** for layered shell + DI; **Parichay** for JWT issuance and claim shapes.
+- **Reference implementation:** nominate one service in your platform as the canonical layered shell + DI example, and one as the JWT issuer reference. Document both in your platform's `AGENTS.md` or wiki.
 - **Do not** add product features to shared **`.mdc`** files—extend **`docs/specification/`** in the consumer repo.
 
 ## Where to start
