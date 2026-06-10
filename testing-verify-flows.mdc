@@ -5,9 +5,11 @@ alwaysApply: true
 
 # Integration testing methodology
 
-Each repository documents **concrete paths, config file names, auth providers, and run commands** in **`tests/README.md`**. When a service has completed a harness audit, also maintain **`docs/specification/harness/<service>-testing-as-built.md`** as the SSOT for layout and CI vs live boundaries.
+Each repository documents **concrete paths, config file names, auth providers, and run commands** in **`tests/README.md`**. Maintain **`docs/specification/as-built/testing-and-verification.md`** (or equivalent section in **`implementation-status.md`**) as the SSOT for layout, CI vs live boundaries, and feature-map alignment.
 
-This file defines **approach and structure** reusable across DriveStream Python services. Derive service-specific detail from the harness doc and **`tests/README.md`** — not from lab or sibling-repo examples that contradict local commands.
+This file defines **approach and structure** reusable across DriveStream Python services. Derive service-specific detail from **as-built testing docs** and **`tests/README.md`** — not from lab or sibling-repo examples that contradict local commands.
+
+**Do not** add **`docs/specification/harness/`** — frozen spec layout is **product / as-built / adr** only (see drivestream-meta `playbook/spec-layout.md`).
 
 ## Objectives
 
@@ -93,7 +95,7 @@ test:
 ## Verify script practices
 
 - Exit **`0`** on success, **non-zero** on failure.
-- Prefer a **`verify_all`** aggregator for full smoke with one command — document order and any in-process session reuse in **`tests/README.md`** or the harness doc.
+- Prefer a **`verify_all`** aggregator for full smoke with one command — document order and any in-process session reuse in **`tests/README.md`** and **as-built testing doc**.
 - **In-process provision:** when multiple verify scripts share one tenant or credentials, use a shared session helper (e.g. `ensure_*_provisioned()`) rather than requiring manual setup between scripts. Standalone provision scripts may exist outside the aggregator.
 - Scripts **not** in **`verify_all`** (internal-only, standalone provision) must be documented in the feature map.
 - Failures should print **clear, grep-friendly** messages.
@@ -106,7 +108,7 @@ test:
 | `make test` (in-process pytest) | yes | yes |
 | `tests/verify/*` | **no** (needs running stack) | yes — document command in **`tests/README.md`** |
 
-Document per-repo skips (e.g. telemetry needing local Alloy) in the harness doc or **`tests/README.md`**.
+Document per-repo skips (e.g. telemetry needing local Alloy) in **as-built testing doc** and **`tests/README.md`**.
 
 ## Unit vs verify — no overlap
 

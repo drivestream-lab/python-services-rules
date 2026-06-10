@@ -36,8 +36,7 @@ Each service repo should provide (not in this package):
 |------|---------|
 | **`docs/specification/product/`** | Requirements, capabilities, features |
 | **`docs/specification/adr/`** | Architecture decision records |
-| **`docs/specification/as-built/`** | What is live today |
-| **`docs/specification/harness/`** | Testing harness SSOT (when present) |
+| **`docs/specification/as-built/`** | What is live today (`implementation-status.md`, `testing-and-verification.md`) |
 | **`AGENTS.md`** | Agent router — rules boundary, verify commands |
 | **`tests/README.md`** | Verify/debug commands, feature map |
 | **`README.md`** | Setup, env vars, pinned **`python-services-rules`** version |
