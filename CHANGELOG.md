@@ -6,6 +6,35 @@ Format: **Breaking** changes require code changes in consumer repos before or al
 
 ---
 
+## v0.5.5
+
+### Summary
+
+Remove **`docs/specification/harness/`** from the SDD hierarchy. Testing ground truth lives under **`docs/specification/as-built/`** (`testing-and-verification.md` + `implementation-status.md`) — mandatory frozen layout per drivestream-meta `playbook/spec-layout.md`.
+
+### Changes
+
+#### `testing-verify-flows.mdc` — Corrective
+
+- **Replaced** harness folder SSOT with **`as-built/testing-and-verification.md`**
+- **Forbidden** `docs/specification/harness/`
+
+#### `spec-driven-development.mdc` — Corrective
+
+- **Merged** harness hierarchy level into **as-built** layer
+
+#### `python-tooling.mdc`, `code-guidelines-index.mdc` — Corrective
+
+- **Updated** maintenance paths to as-built testing doc
+
+### Migration guide
+
+- Move `docs/specification/harness/*` → `docs/specification/as-built/testing-and-verification.md`
+- Delete **`harness/`** folder
+- Update `AGENTS.md`, `tests/README.md`, and submodule pointer references
+
+---
+
 ## v0.5.4
 
 ### Summary

@@ -259,7 +259,7 @@ When a service runs a test-quality program:
 
 - Create **`tests/unit/`** for logic and edge-case pytest.
 - Move in-process tests there; set **`testpaths = ["tests/unit"]`**.
-- Update **`Makefile`**, **`tests/README.md`**, harness doc, and as-built together.
+- Update **`Makefile`**, **`tests/README.md`**, and **as-built** (`testing-and-verification.md` + `implementation-status.md`) together.
 
 Do **not** require **`tests/unit/`** in new services until that epic is explicitly scheduled.
 
