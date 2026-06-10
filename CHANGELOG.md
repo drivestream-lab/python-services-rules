@@ -6,6 +6,47 @@ Format: **Breaking** changes require code changes in consumer repos before or al
 
 ---
 
+## v0.5.4
+
+### Summary
+
+Testing and SDD rules derived from the Parichay harness audit (BOOTSTRAP-DS-001 P2). Encodes as-built verify/pytest layout, `tests/config.yaml` canon, CI vs live boundaries, no-overlap principle, and DriveStream truth hierarchy. **`tests/unit/`** documented as a deferred target — not required until a per-service quality epic.
+
+### Changes
+
+#### `testing-verify-flows.mdc` — Additive / Corrective
+
+- **Added** standard folder layout (`verify/`, `debug/`, `_helpers/`, `config.yaml`).
+- **Added** toolchain vs runtime split; verify/debug use **`tests/config.yaml`**, not **`.env`**, as primary local config.
+- **Added** pytest collection boundaries (`--ignore` verify/debug/e2e); **`tests/unit/`** as deferred target.
+- **Added** `verify_all` patterns: aggregator, in-process provision session, scripts outside aggregator.
+- **Added** CI vs live verify table, feature map in **`tests/README.md`**, harness doc SSOT pattern.
+- **Added** unit vs verify no-overlap rule.
+
+#### `spec-driven-development.mdc` — Additive (new file)
+
+- **Added** DriveStream truth hierarchy: rules → **`AGENTS.md`** → product → ADR → as-built → harness.
+- **Added** update discipline, PR traceability, constitution boundary, execution chat rule.
+
+#### `python-tooling.mdc` — Additive / Corrective
+
+- **Updated** canonical **`make test`** target with `--ignore` for verify/debug/e2e.
+- **Added** current vs target test layout (`tests/` today; **`tests/unit/`** deferred).
+- **Added** cross-link to **`spec-driven-development.mdc`**.
+
+#### `code-guidelines-index.mdc` — Additive
+
+- **Added** **`spec-driven-development.mdc`** to index; expanded per-repo documentation table.
+
+### Migration guide
+
+- **Non-breaking** for existing services on v0.5.3 — adopt when bumping submodule.
+- Align **`Makefile` `test`** target with canonical `--ignore` flags if not already.
+- Add **`spec-driven-development.mdc`** automatically via submodule bump — no consumer code change required.
+- Services with harness audits should keep **`docs/specification/harness/`** and **`tests/README.md`** in sync with these rules.
+
+---
+
 ## v0.5.3
 
 ### Summary

@@ -2,7 +2,7 @@
 
 Shared **Cursor agent rules** (`.mdc`) for Python microservices. Rules describe **how to code** (architecture, DI, repos, HTTP conventions) — not product requirements. Designed as a reusable constitution: adopt it in any Python microservice project, regardless of platform.
 
-**Version:** see [`VERSION`](VERSION) (currently **0.5.3**) · [CHANGELOG](CHANGELOG.md)
+**Version:** see [`VERSION`](VERSION) (currently **0.5.4**) · [CHANGELOG](CHANGELOG.md)
 
 ---
 
@@ -27,6 +27,7 @@ python-services-rules/     # mounted as .cursor/rules/ in service repos
   python-imports.mdc
   python-tooling.mdc
   repository-pattern.mdc
+  spec-driven-development.mdc
   strong-typing.mdc
   testing-verify-flows.mdc
 ```

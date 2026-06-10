@@ -22,6 +22,7 @@ These **`.mdc`** files govern **architectural patterns** for Python microservice
 | **`pydantic-schemas.mdc`** | **Pydantic not Dict**; **`_metadata`**; domain enums |
 | **`strong-typing.mdc`** | Annotations, boundaries, JSONB typing |
 | **`database-migrations.mdc`** | **Alembic**, hand-written revisions, human-owned versions |
+| **`spec-driven-development.mdc`** | SDD truth hierarchy, as-built discipline, PR traceability |
 | **`testing-verify-flows.mdc`** | verify / debug / pytest methodology |
 | **`logging-loguru.mdc`** | **`get_logger`**, **`setup_logging`**, structured JSON, correlation |
 | **`python-tooling.mdc`** | Black, Ruff, **pyright**, **import-linter**, **Makefile**, pytest, **`pythonpath`** |
@@ -35,6 +36,10 @@ Each service repo should provide (not in this package):
 |------|---------|
 | **`docs/specification/product/`** | Requirements, capabilities, features |
 | **`docs/specification/adr/`** | Architecture decision records |
+| **`docs/specification/as-built/`** | What is live today |
+| **`docs/specification/harness/`** | Testing harness SSOT (when present) |
+| **`AGENTS.md`** | Agent router — rules boundary, verify commands |
+| **`tests/README.md`** | Verify/debug commands, feature map |
 | **`README.md`** | Setup, env vars, pinned **`python-services-rules`** version |
 
 ## Cross-project conventions (style)

@@ -1,0 +1,64 @@
+---
+description: Spec-driven development workflow — truth hierarchy and update discipline for DriveStream service repos.
+alwaysApply: true
+---
+
+# Spec-driven development workflow
+
+DriveStream service repos follow a strict source-of-truth hierarchy. Constitution rules live in **`.cursor/rules/`** (this submodule); product truth lives in each service repo.
+
+Platform playbook (process, board, handoff): [drivestream-meta/playbook](https://github.com/autrio10x/drivestream-meta/tree/develop/playbook).
+
+## Hierarchy (read in this order)
+
+| Priority | Location | Answers |
+|----------|----------|---------|
+| 1 | **`.cursor/rules/*.mdc`** (submodule) | **How** to build |
+| 2 | **`AGENTS.md`** | Router — rules boundary, verify commands, playbook links |
+| 3 | **`docs/specification/product/`** | **What** to build |
+| 4 | **`docs/specification/adr/`** | **Why** (accepted decisions) |
+| 5 | **`docs/specification/as-built/implementation-status.md`** | **What is live today** |
+| 6 | **`docs/specification/harness/`** (when present) | **How testing works today** — SSOT for verify/pytest layout |
+
+## Required workflow
+
+- Start implementation from **`AGENTS.md`**
+- Read the relevant **product** spec before changing behavior
+- Read the relevant **accepted ADR** before changing architecture or contracts
+- Read **as-built** before assuming a feature is implemented or verified
+- Read the **harness** doc (if the repo has one) before changing `tests/` layout or verify scripts
+- Treat accepted ADRs as immutable during implementation — supersede with a new ADR when architecture changes
+
+## Update discipline
+
+When behavior changes, update together:
+
+- code
+- **verify** (`tests/verify/`) — live smoke per product feature
+- **pytest** — in-process tests per repo layout (see **`testing-verify-flows.mdc`**)
+- product spec (if contract or capability changes)
+- **as-built** — distinguish implemented / unit-tested / live-verified
+
+Never leave those layers drifting from each other.
+
+## PR traceability
+
+Every PR should name (see repo `.github/pull_request_template.md` when present):
+
+- **Initiative** (e.g. board epic or program id)
+- **Issue #**
+- **Spec paths** touched
+- **Verify command** run (matches board **Verify** column when applicable)
+
+## Constitution boundary
+
+- Do **not** put product requirements in **`.cursor/rules/`**
+- Do **not** treat narrative docs as the primary contract when a product spec exists
+- Do **not** infer implementation maturity from rules or specs without checking **as-built**
+- Do **not** redesign accepted architecture opportunistically in an implementation task
+
+## Execution chat rule
+
+- Architecture and spec design happen in dedicated design chats
+- Implementation chats execute one accepted ADR or one accepted phase slice at a time
+- Implementation prompts should explicitly name the ADR or phase being executed

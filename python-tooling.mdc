@@ -229,7 +229,7 @@ layers:
 	.venv/bin/lint-imports
 
 test:
-	.venv/bin/pytest
+	.venv/bin/pytest tests/ -v --ignore=tests/debug/ --ignore=tests/verify/ --ignore=tests/e2e/
 ```
 
 **Workflow:**
@@ -245,8 +245,23 @@ test:
 
 ## Tests
 
-- **pytest**; set **`testpaths`** (e.g. **`["tests"]`**).
+### Current layout (as-built)
+
+- **pytest** with **`testpaths = ["tests"]`** in **`pyproject.toml`**.
 - Set **`pythonpath = ["."]`** (or equivalent) so **`from src....`** imports work without an editable install.
+- **`make test`** runs pytest on **`tests/`** but **ignores** **`tests/debug/`**, **`tests/verify/`**, and **`tests/e2e/`** — live and exploratory scripts are not collected.
+- Shared helpers live under **`tests/_helpers/`** (not collected as tests).
+- In-process modules may sit at **`tests/test_*.py`** until a service adopts **`tests/unit/`**.
+
+### Target layout (service quality epic — deferred)
+
+When a service runs a test-quality program:
+
+- Create **`tests/unit/`** for logic and edge-case pytest.
+- Move in-process tests there; set **`testpaths = ["tests/unit"]`**.
+- Update **`Makefile`**, **`tests/README.md`**, harness doc, and as-built together.
+
+Do **not** require **`tests/unit/`** in new services until that epic is explicitly scheduled.
 
 ## Business-flow verification
 
@@ -271,6 +286,7 @@ test:
 
 ## Related rules
 
+- **SDD workflow:** `spec-driven-development.mdc`
 - **Strong typing:** `strong-typing.mdc`
 - **Verify flows:** `testing-verify-flows.mdc`
 - **Import style:** `architecture.mdc`
