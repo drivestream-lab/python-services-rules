@@ -6,6 +6,36 @@ Format: **Breaking** changes require code changes in consumer repos before or al
 
 ---
 
+## v0.5.7
+
+### Summary
+
+Link frozen spec-layout SSOT to launchpad playbook (not private tenant meta).
+
+### Changes
+
+- **`testing-verify-flows.mdc`** — point at [launchpad `playbook/spec-layout.md`](https://github.com/drivestream-lab/launchpad/blob/main/playbook/spec-layout.md)
+
+### Migration guide
+
+- Optional submodule bump: `git checkout v0.5.7` in `.cursor/rules`
+- No application code changes required
+
+---
+
+## v0.5.6
+
+### Summary
+
+Agent-workflows boundary in SDD mdc (no prayog skill catalogs in constitution). OSS playbook link. MDC boundary CI check.
+
+### Migration guide
+
+- Optional submodule bump: `git checkout v0.5.6` in `.cursor/rules`
+- No application code changes required
+
+---
+
 ## v0.5.5
 
 ### Summary
