@@ -9,7 +9,7 @@ Each repository documents **concrete paths, config file names, auth providers, a
 
 This file defines **approach and structure** reusable across DriveStream Python services. Derive service-specific detail from **as-built testing docs** and **`tests/README.md`** — not from lab or sibling-repo examples that contradict local commands.
 
-**Do not** add **`docs/specification/harness/`** — frozen spec layout is **product / as-built / adr** only (see drivestream-meta `playbook/spec-layout.md`).
+**Do not** add **`docs/specification/harness/`** — frozen spec layout is **product / as-built / adr** only (see [launchpad `playbook/spec-layout.md`](https://github.com/drivestream-lab/launchpad/blob/main/playbook/spec-layout.md)).
 
 ## Objectives
 
