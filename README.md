@@ -45,7 +45,7 @@ Run from the **consumer service repo root** (e.g. `abhilekh/`, `kavach/`):
 rm -rf .cursor/rules
 
 # Add this repo as a submodule at .cursor/rules
-git submodule add https://github.com/autrio10x/python-services-rules.git .cursor/rules
+git submodule add https://github.com/drivestream-lab/python-services-rules.git .cursor/rules
 
 # Pin to the current stable release
 cd .cursor/rules && git checkout v0.4.0 && cd ../..
@@ -67,7 +67,7 @@ Cursor reads **`.cursor/rules/*.mdc`** directly — no install script, no copy s
 ## Rules
 
 Shared coding rules live in `.cursor/rules/` (git submodule — do not edit files there).
-To propose a rule change, open a PR on [python-services-rules](https://github.com/autrio10x/python-services-rules).
+To propose a rule change, open a PR on [python-services-rules](https://github.com/drivestream-lab/python-services-rules).
 
 ## Product documentation
 
@@ -201,7 +201,7 @@ Add to the consumer repo's `README.md`:
 ```markdown
 ## Cursor rules
 
-Shared coding rules: [`python-services-rules`](https://github.com/autrio10x/python-services-rules) pinned at **v0.4.0**.
+Shared coding rules: [`python-services-rules`](https://github.com/drivestream-lab/python-services-rules) pinned at **v0.4.0**.
 To update: see [Bump rules version](#bump-rules-version) below.
 ```
 
