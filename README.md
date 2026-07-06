@@ -7,7 +7,7 @@ Rules describe **how to code**. They do **not** contain product requirements, ro
 | | |
 |---|---|
 | **License** | [MIT](LICENSE) |
-| **Version** | see [`VERSION`](VERSION) (currently **0.5.5**) · [CHANGELOG](CHANGELOG.md) |
+| **Version** | see [`VERSION`](VERSION) (currently **0.5.7**) · [CHANGELOG](CHANGELOG.md) |
 | **Harness profile** | `python-backend` |
 | **Mount path** | `.cursor/rules/` (git submodule) |
 | **Pairs with** | [python-fastapi-foundation](https://github.com/drivestream-lab/python-fastapi-foundation) · [prayog-skills](https://github.com/drivestream-lab/prayog-skills) · [launchpad](https://github.com/drivestream-lab/launchpad) |
