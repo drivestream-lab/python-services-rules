@@ -7,7 +7,7 @@ alwaysApply: true
 
 DriveStream service repos follow a strict source-of-truth hierarchy. Constitution rules live in **`.cursor/rules/`** (this submodule); product truth lives in each service repo.
 
-Platform playbook (process, board, handoff): [drivestream-meta/playbook](https://github.com/autrio10x/drivestream-meta/tree/develop/playbook).
+Platform playbook (process, board, handoff): [launchpad playbook](https://github.com/drivestream-lab/launchpad/tree/main/playbook).
 
 ## Hierarchy (read in this order)
 
@@ -54,6 +54,11 @@ Every PR should name (see repo `.github/pull_request_template.md` when present):
 - Do **not** treat narrative docs as the primary contract when a product spec exists
 - Do **not** infer implementation maturity from rules or specs without checking **as-built**
 - Do **not** redesign accepted architecture opportunistically in an implementation task
+
+## Agent workflows
+
+Procedural slash commands are installed under `.agents/skills/` (prayog dev bundle via harness sync).
+**Which** skills apply and **when** to use them: read `AGENTS.md` and `.harness-pin.yaml` — not this constitution.
 
 ## Execution chat rule
 

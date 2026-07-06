@@ -6,6 +6,19 @@ Format: **Breaking** changes require code changes in consumer repos before or al
 
 ---
 
+## v0.5.6
+
+### Summary
+
+Agent-workflows boundary in SDD mdc (no prayog skill catalogs in constitution). OSS playbook link. MDC boundary CI check.
+
+### Migration guide
+
+- Optional submodule bump: `git checkout v0.5.6` in `.cursor/rules`
+- No application code changes required
+
+---
+
 ## v0.5.5
 
 ### Summary
