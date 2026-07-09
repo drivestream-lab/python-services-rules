@@ -6,6 +6,23 @@ Format: **Breaking** changes require code changes in consumer repos before or al
 
 ---
 
+## v0.5.9
+
+### Summary
+
+De-org README — constitution-focused adoption docs without harness stack bleed.
+
+### Changes
+
+- **`README.md`** — remove harness profile, launchpad/prayog primary adoption, Makefile/importlinter paste, stale `.gitmodules` claim; use `<org>` in submodule commands; update version refs to v0.5.9
+
+### Migration guide
+
+- Optional submodule bump: `git checkout v0.5.9` in `.cursor/rules`
+- No application code changes required
+
+---
+
 ## v0.5.8
 
 ### Summary

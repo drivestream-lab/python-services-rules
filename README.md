@@ -1,31 +1,19 @@
 # python-services-rules
 
-**Open constitution for Python microservices** — shared Cursor agent rules (`.mdc`) for FastAPI services: layered architecture, dependency injection, repositories, logging, tooling, and spec-driven delivery.
+**Open constitution for Python microservices** — shared Cursor agent rules (`.mdc`)
+for FastAPI services: layered architecture, dependency injection, repositories,
+logging, tooling, and spec-driven delivery.
 
-Rules describe **how to code**. They do **not** contain product requirements, route catalogs, or environment-specific URLs — those live in each consumer repo under `docs/specification/`.
+Rules describe **how to code**. They do **not** contain product requirements,
+route catalogs, or environment-specific URLs — those live in each consumer repo
+under `docs/specification/`.
 
 | | |
 |---|---|
 | **License** | [MIT](LICENSE) |
-| **Version** | see [`VERSION`](VERSION) (currently **0.5.8**) · [CHANGELOG](CHANGELOG.md) |
-| **Harness profile** | `python-backend` |
+| **Version** | see [`VERSION`](VERSION) (currently **0.5.9**) · [CHANGELOG](CHANGELOG.md) |
 | **Mount path** | `.cursor/rules/` (git submodule) |
-| **Pairs with** | [python-fastapi-foundation](https://github.com/drivestream-lab/python-fastapi-foundation) · [prayog-skills](https://github.com/drivestream-lab/prayog-skills) · [launchpad](https://github.com/drivestream-lab/launchpad) |
-
----
-
-## Role in the harness stack
-
-```text
-.harness-pin.yaml  (profile: python-backend)
-        │
-        ├── rules  ──►  python-services-rules  →  .cursor/rules/*.mdc
-        └── agent_skills  ──►  prayog-skills  →  .agents/skills/ (seeded)
-```
-
-[Launchpad](https://github.com/drivestream-lab/launchpad) `sync-harness-app` writes the pin, syncs this submodule, and seeds dev skills. See [harness pins](https://github.com/drivestream-lab/launchpad/blob/main/playbook/harness-pins.md).
-
-Greenfield services: start from [python-fastapi-foundation](https://github.com/drivestream-lab/python-fastapi-foundation) — it generates `.gitmodules` pointing here.
+| **Scaffold** | [python-fastapi-foundation](https://github.com/drivestream-lab/python-fastapi-foundation) — optional cookiecutter for new services |
 
 ---
 
@@ -38,7 +26,7 @@ python-services-rules/
   VERSION
   README.md
   CHANGELOG.md
-  code-guidelines-index.mdc    ← module index
+  code-guidelines-index.mdc    ← module index (start here)
   architecture.mdc
   dependency-injection.mdc
   repository-pattern.mdc
@@ -50,90 +38,38 @@ python-services-rules/
   …
 ```
 
+Full module table: [`code-guidelines-index.mdc`](code-guidelines-index.mdc).
+
 ---
 
 ## Adoption
-
-### With Launchpad (recommended)
-
-```bash
-launchpad sync-harness-app --repo <service> --apply
-launchpad verify-harness-app --repo <service>
-```
-
-### Manual submodule
 
 From the **consumer service repo root**:
 
 ```bash
 rm -rf .cursor/rules
 
-git submodule add https://github.com/drivestream-lab/python-services-rules.git .cursor/rules
-cd .cursor/rules && git checkout v0.5.5 && cd ../..
+git submodule add https://github.com/<org>/python-services-rules.git .cursor/rules
+cd .cursor/rules && git checkout v0.5.9 && cd ../..
 
 git add .gitmodules .cursor/rules
-git commit -m "Add Python service Cursor rules at .cursor/rules (v0.5.5)"
+git commit -m "Add Python service Cursor rules at .cursor/rules (v0.5.9)"
 ```
 
 Cursor loads **`.cursor/rules/*.mdc`** automatically — no copy step.
 
-### AGENTS.md
-
-Point agents at the rules boundary and product docs. Use your tenant `templates/AGENTS.python.md` or harness sync output. Minimum contract:
-
-- Do **not** edit `.cursor/rules/` in the consumer — propose changes via PR on this repo
-- Product specs: `docs/specification/product/`, ADRs, as-built, `tests/README.md`
+Greenfield services may start from
+[python-fastapi-foundation](https://github.com/drivestream-lab/python-fastapi-foundation)
+(`cookiecutter … --checkout v0.3.2`), then add the rules submodule as above.
 
 ---
 
 ## Tooling expected by the rules
 
-`python-tooling.mdc` requires quality gates in each consumer. After pinning, ensure the service repo has:
-
-```bash
-poetry add --group dev pyright import-linter
-```
-
-**`Makefile`** (typical targets):
-
-```makefile
-.PHONY: check format lint types layers test
-
-check: format lint types layers
-
-format:
-	poetry run black --check --line-length 100 src/ tests/
-
-lint:
-	poetry run ruff check src/ tests/
-
-types:
-	poetry run pyright
-
-layers:
-	poetry run lint-imports
-
-test:
-	poetry run pytest
-```
-
-**`.importlinter`** — layer contract (adapt packages to your layout):
-
-```ini
-[importlinter]
-root_packages = src
-
-[importlinter:contract:layer-architecture]
-name = Layered architecture
-type = layers
-layers =
-    src.api
-    src.business_services
-    src.database.postgres.repository
-    src.database.postgres.schema
-```
-
-[python-fastapi-foundation](https://github.com/drivestream-lab/python-fastapi-foundation) generates these files for new services.
+`python-tooling.mdc` defines required quality gates: **Black**, **Ruff**,
+**pyright**, **import-linter**, **pre-commit**, and Makefile targets
+(`setup`, `check`, `test`). Exact config files live in the consumer repo or
+scaffold — not in this constitution.
 
 ---
 
@@ -142,13 +78,14 @@ layers =
 ```bash
 cd .cursor/rules
 git fetch --tags
-git checkout v0.5.5    # target version
+git checkout v0.5.9    # target version
 cd ../..
-git add .cursor/rules .harness-pin.yaml
-git commit -m "Bump Python service rules to v0.5.5"
+git add .cursor/rules
+git commit -m "Bump Python service rules to v0.5.9"
 ```
 
-Read [CHANGELOG](CHANGELOG.md) before every bump. **Breaking** releases require consumer code changes before or alongside the pointer update.
+Read [CHANGELOG](CHANGELOG.md) before every bump. **Breaking** releases require
+consumer code changes before or alongside the submodule pointer update.
 
 ---
 
@@ -158,7 +95,7 @@ Read [CHANGELOG](CHANGELOG.md) before every bump. **Breaking** releases require 
 |-----------|--------|
 | **Ownership** | Platform / architecture team owns this repo |
 | **Consumers** | Pin a release tag — never fork or edit rules in product repos |
-| **Changes** | PR here → semver tag → bump harness approved pairs in tenant config |
+| **Changes** | Propose via PR here; consumers update the submodule pointer only |
 | **Product truth** | Requirements, ADRs, as-built → `docs/specification/` per service |
 | **Do not** | `gitignore` `.cursor/rules` in consumers — breaks the pinned submodule |
 
@@ -172,38 +109,27 @@ Read [CHANGELOG](CHANGELOG.md) before every bump. **Breaking** releases require 
 | `docs/specification/adr/` | Architecture decision records |
 | `docs/specification/as-built/` | What is live today |
 | `README.md`, `tests/README.md` | Setup, env vars, verify commands |
-| `AGENTS.md` | Agent router and harness pin |
-
----
-
-## Rule index
-
-See [`code-guidelines-index.mdc`](code-guidelines-index.mdc) for the full module table covering architecture, DI, repos, HTTP conventions, migrations, SDD, verify flows, and tooling.
 
 ---
 
 ## Release process (maintainers)
 
 1. Branch `rules/<short-description>` — edit `*.mdc` at repo root; peer review required
-2. Bump **`VERSION`** (semver):
-   - **PATCH** — clarifications, non-breaking additions
-   - **MINOR** — new guidance sections, additive tooling
-   - **MAJOR** — breaking consumer changes (document migration in CHANGELOG)
-3. Update version in this README and [CHANGELOG](CHANGELOG.md)
+2. Bump **`VERSION`** (semver) and **`CHANGELOG.md`**
+3. Update version in this README header
 4. PR → `develop` → `main`; tag and push:
 
 ```bash
-git tag v0.5.5
-git push origin v0.5.5
+git tag v0.5.9
+git push origin v0.5.9
 ```
-
-5. Update tenant `config/harness-<org>.yaml` approved `rules` + `agent_skills` pairs; notify service teams
 
 ---
 
 ## Migration from 0.1.x layout
 
-**0.1.x** used copied rules under `cursor/rules/`. **0.2.0+** mounts this repo at **`.cursor/rules`** via submodule. Remove legacy copied directories when upgrading.
+**0.1.x** used copied rules under `cursor/rules/`. **0.2.0+** mounts this repo at
+**`.cursor/rules`** via submodule. Remove legacy copied directories when upgrading.
 
 ---
 
@@ -211,10 +137,8 @@ git push origin v0.5.5
 
 | Repo | Role |
 |------|------|
-| [python-fastapi-foundation](https://github.com/drivestream-lab/python-fastapi-foundation) | Cookiecutter scaffold implementing these rules |
-| [data-platform-rules](https://github.com/drivestream-lab/data-platform-rules) | Flink/Java constitution — not for Python APIs |
-| [prayog-skills](https://github.com/drivestream-lab/prayog-skills) | SDD agent workflows |
-| [launchpad](https://github.com/drivestream-lab/launchpad) | Factory CLI and playbook |
+| [python-fastapi-foundation](https://github.com/drivestream-lab/python-fastapi-foundation) | Cookiecutter scaffold for new FastAPI services |
+| [nextjs-bff-rules](https://github.com/drivestream-lab/nextjs-bff-rules) | Constitution for BFF portals that call Python APIs |
 
 ---
 
