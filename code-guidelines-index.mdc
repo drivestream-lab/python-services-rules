@@ -7,7 +7,7 @@ alwaysApply: true
 
 These **`.mdc`** files govern **architectural patterns** for Python microservices. They live in the **`python-services-rules`** repository and are consumed via a **git submodule** at each service repo's **`.cursor/rules/`** (this directory when mounted).
 
-**Product-specific** requirements, ADRs, route catalogs, and env URLs belong in each service repo under **`docs/specification/`** and **README**—not in this package.
+**Product-specific** requirements, ADRs, route catalogs, and env URLs belong in each service repo under **`docs/specification/`** and **README** — not in this package.
 
 ## Architectural rules (this package)
 
@@ -36,17 +36,16 @@ Each service repo should provide (not in this package):
 |------|---------|
 | **`docs/specification/product/`** | Requirements, capabilities, features |
 | **`docs/specification/adr/`** | Architecture decision records |
-| **`docs/specification/as-built/`** | What is live today (`implementation-status.md`, `testing-and-verification.md`) |
-| **`AGENTS.md`** | Agent router — rules boundary, verify commands |
+| **`docs/specification/as-built/`** | What is live today |
 | **`tests/README.md`** | Verify/debug commands, feature map |
-| **`README.md`** | Setup, env vars, pinned **`python-services-rules`** version |
+| **`README.md`** | Setup, env vars, run commands |
 
-## Cross-project conventions (style)
+## Cross-project conventions
 
+- **Do not** add product features or service names to shared **`.mdc`** files — extend **`docs/specification/`** in the consumer repo.
+- **Do not** edit **`.cursor/rules/`** in consumer repos — propose changes via PR on the upstream `python-services-rules` repository.
 - **No emojis** in code or logs; use tags such as **[OK]**, **[ERROR]**, **[WARNING]**, **[INFO]** when needed.
 - **Service imports:** import service classes and **`get_*_service`** getters from **service modules**, not from package **`__init__.py`**.
-- **Reference implementation:** nominate one service in your platform as the canonical layered shell + DI example, and one as the JWT issuer reference. Document both in your platform's `AGENTS.md` or wiki.
-- **Do not** add product features to shared **`.mdc`** files—extend **`docs/specification/`** in the consumer repo.
 
 ## Where to start
 

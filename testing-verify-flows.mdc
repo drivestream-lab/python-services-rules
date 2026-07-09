@@ -5,11 +5,11 @@ alwaysApply: true
 
 # Integration testing methodology
 
-Each repository documents **concrete paths, config file names, auth providers, and run commands** in **`tests/README.md`**. Maintain **`docs/specification/as-built/testing-and-verification.md`** (or equivalent section in **`implementation-status.md`**) as the SSOT for layout, CI vs live boundaries, and feature-map alignment.
+Each repository documents **concrete paths, config file names, auth providers, and run commands** in **`tests/README.md`**. Maintain **`docs/specification/as-built/`** as the SSOT for layout, CI vs live boundaries, and feature-map alignment.
 
-This file defines **approach and structure** reusable across DriveStream Python services. Derive service-specific detail from **as-built testing docs** and **`tests/README.md`** — not from lab or sibling-repo examples that contradict local commands.
+This file defines **approach and structure** reusable across Python service repos. Derive service-specific detail from **as-built testing docs** and **`tests/README.md`** in the consumer repo.
 
-**Do not** add **`docs/specification/harness/`** — frozen spec layout is **product / as-built / adr** only (see [launchpad `playbook/spec-layout.md`](https://github.com/drivestream-lab/launchpad/blob/main/playbook/spec-layout.md)).
+Product documentation tree: **`docs/specification/product/`**, **`docs/specification/adr/`**, **`docs/specification/as-built/`**.
 
 ## Objectives
 
@@ -51,9 +51,9 @@ Each repo maintains a **feature map** in **`tests/README.md`**: capability → v
 |------|-------------|-----------------|
 | Format, lint, types, layers | `.venv` only | `make check` |
 | Pytest | `.venv` only | `make test` |
-| Verify / debug | `.venv`; **conda** when the service documents it for runtime | Document in **`tests/README.md`** (e.g. `conda activate <env>` then `poetry run python -m tests.verify.<script>`) |
+| Verify / debug | `.venv` only | Document in **`tests/README.md`** (e.g. `.venv/bin/python -m tests.verify.<script>`) |
 
-- **Toolchain** (pyright, ruff, pytest, pre-commit) runs from **`.venv`** without conda.
+- **Toolchain** (pyright, ruff, pytest, pre-commit) and **verify/debug** run from **`.venv`** — no conda for standard FastAPI services.
 - **Verify/debug** use the same Python env as the running API (`src.*` on **`pythonpath`**). Follow **`tests/README.md`** for the canonical command — not a shared Makefile target.
 
 ## Configuration pattern
@@ -67,13 +67,7 @@ Each repo maintains a **feature map** in **`tests/README.md`**: capability → v
 
 - Set **`testpaths`** in **`pyproject.toml`** (current convention: **`["tests"]`**).
 - Set **`pythonpath = ["."]`** so **`from src....`** imports work without an editable install.
-- **`make test`** must **exclude** paths pytest should not collect:
-
-```makefile
-test:
-	.venv/bin/pytest tests/ -v --ignore=tests/debug/ --ignore=tests/verify/ --ignore=tests/e2e/
-```
-
+- **`make test`** must **exclude** **`tests/debug/`**, **`tests/verify/`**, and **`tests/e2e/`** from pytest collection.
 - **`_helpers/`** must not be collected (package naming or explicit ignore).
 - **Target (deferred):** `tests/unit/` as the sole pytest home with **`testpaths = ["tests/unit"]`** — adopt per service quality epic, not by default.
 
