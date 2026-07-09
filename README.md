@@ -11,9 +11,9 @@ under `docs/specification/`.
 | | |
 |---|---|
 | **License** | [MIT](LICENSE) |
-| **Version** | see [`VERSION`](VERSION) (currently **0.5.9**) · [CHANGELOG](CHANGELOG.md) |
+| **Version** | see [`VERSION`](VERSION) (currently **0.5.10**) · [CHANGELOG](CHANGELOG.md) |
 | **Mount path** | `.cursor/rules/` (git submodule) |
-| **Scaffold** | [python-fastapi-foundation](https://github.com/drivestream-lab/python-fastapi-foundation) — optional cookiecutter for new services |
+| **Scaffold** | `python-fastapi-foundation` — optional cookiecutter in your org |
 
 ---
 
@@ -50,16 +50,15 @@ From the **consumer service repo root**:
 rm -rf .cursor/rules
 
 git submodule add https://github.com/<org>/python-services-rules.git .cursor/rules
-cd .cursor/rules && git checkout v0.5.9 && cd ../..
+cd .cursor/rules && git checkout v0.5.10 && cd ../..
 
 git add .gitmodules .cursor/rules
-git commit -m "Add Python service Cursor rules at .cursor/rules (v0.5.9)"
+git commit -m "Add Python service Cursor rules at .cursor/rules (v0.5.10)"
 ```
 
 Cursor loads **`.cursor/rules/*.mdc`** automatically — no copy step.
 
-Greenfield services may start from
-[python-fastapi-foundation](https://github.com/drivestream-lab/python-fastapi-foundation)
+Greenfield services may start from `python-fastapi-foundation` in your org
 (`cookiecutter … --checkout v0.3.2`), then add the rules submodule as above.
 
 ---
@@ -78,10 +77,10 @@ scaffold — not in this constitution.
 ```bash
 cd .cursor/rules
 git fetch --tags
-git checkout v0.5.9    # target version
+git checkout v0.5.10    # target version
 cd ../..
 git add .cursor/rules
-git commit -m "Bump Python service rules to v0.5.9"
+git commit -m "Bump Python service rules to v0.5.10"
 ```
 
 Read [CHANGELOG](CHANGELOG.md) before every bump. **Breaking** releases require
@@ -120,8 +119,8 @@ consumer code changes before or alongside the submodule pointer update.
 4. PR → `develop` → `main`; tag and push:
 
 ```bash
-git tag v0.5.9
-git push origin v0.5.9
+git tag v0.5.10
+git push origin v0.5.10
 ```
 
 ---
@@ -137,8 +136,8 @@ git push origin v0.5.9
 
 | Repo | Role |
 |------|------|
-| [python-fastapi-foundation](https://github.com/drivestream-lab/python-fastapi-foundation) | Cookiecutter scaffold for new FastAPI services |
-| [nextjs-bff-rules](https://github.com/drivestream-lab/nextjs-bff-rules) | Constitution for BFF portals that call Python APIs |
+| `python-fastapi-foundation` | Cookiecutter scaffold for new FastAPI services |
+| `nextjs-bff-rules` | Constitution for BFF portals that call Python APIs |
 
 ---
 
