@@ -5,22 +5,19 @@ alwaysApply: true
 
 # Tooling
 
-## Environment setup (conda + Poetry + `.venv`)
+## Environment setup (Python 3.12 + Poetry + `.venv`)
 
-**conda** controls the Python interpreter version. **Poetry** manages all Python packages via `pyproject.toml` and `poetry.lock`. A project-local **`.venv`** is created explicitly so the toolchain (pyright, ruff, pre-commit) is always self-contained and works without conda being activated.
+**Python 3.12** is the interpreter. **Poetry** manages all Python packages via `pyproject.toml` and `poetry.lock`. A project-local **`.venv`** is created explicitly so the toolchain (pyright, ruff, pre-commit) is always self-contained.
 
-### Why `.venv` is created explicitly
-
-When poetry is installed inside a conda env, it detects the conda env as its virtualenv and will not create `.venv` automatically — even with `virtualenvs.in-project true`. To guarantee a project-local `.venv`, create it directly:
+### Standard setup
 
 ```bash
-conda activate <env-name>           # activate the conda env for the right Python version
-python -m venv .venv                # create .venv using the conda Python
-poetry env use .venv/bin/python     # tell Poetry to use this .venv
-poetry install                      # install all deps into .venv
+python3.12 -m venv .venv
+poetry env use .venv/bin/python
+poetry install --with dev
 ```
 
-After this, `.venv` is the single toolchain home. All `make` targets, pre-commit hooks, and pyright use it. Conda only needs to be activated when running live-infra flows (see **Tooling vs runtime env** below).
+After this, `.venv` is the single environment for toolchain, tests, and running the app. No conda activation is required for standard FastAPI services.
 
 ### First-time setup: `make setup`
 
@@ -35,19 +32,18 @@ Canonical `scripts/setup_dev.sh`:
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "[setup] Creating .venv with current conda Python..."
-python -m venv .venv
+command -v python3.12 >/dev/null || { echo "python3.12 required"; exit 1; }
 
-echo "[setup] Registering .venv with Poetry..."
-poetry env use .venv/bin/python
+python3.12 -m venv .venv
+.venv/bin/pip install --upgrade pip poetry
+POETRY_VIRTUALENVS_IN_PROJECT=1 .venv/bin/poetry env use .venv/bin/python
+.venv/bin/poetry install --with dev
 
-echo "[setup] Installing dependencies..."
-poetry install
+for tool in black ruff pyright pytest; do
+  test -x ".venv/bin/$tool" || { echo "missing $tool"; exit 1; }
+done
 
-echo "[setup] Installing pre-commit hooks..."
 .venv/bin/pre-commit install
-
-echo "[setup] Done. Run 'make check' to verify."
 ```
 
 Make target:
@@ -58,16 +54,15 @@ setup:
 
 `scripts/setup_dev.sh` is committed to the repo. README setup instructions point here — not to a sequence of manual commands.
 
-### Tooling vs runtime env
+### Tooling vs runtime
 
 | Context | Env needed | How to run |
 |---------|-----------|------------|
-| `make check`, pyright, ruff, pre-commit | `.venv` only — no conda activation | `make check` from any shell |
+| `make check`, pyright, ruff, pre-commit | `.venv` only | `make check` from any shell |
 | `pytest` (unit, no live infra) | `.venv` only | `make test` |
-| `verify_all` (pure Python, live HTTP APIs) | `.venv` only | `.venv/bin/python -m tests.verify.verify_all` |
-| `verify_all` (needs native conda packages) | conda env | `conda run -n <env-name> .venv/bin/python -m tests.verify.verify_all` |
+| `make run`, live verify | `.venv` only | `.venv/bin/python -m src.main` or documented verify command |
 
-The toolchain is fully self-contained in `.venv`. The `verify_all` invocation is service-specific — document the exact command in `tests/README.md`. **`conda activate` does not work inside Makefile targets** — use `conda run -n <env>` when conda env access is needed. The `verify` target is intentionally absent from the canonical Makefile: invocation varies per service and belongs in `tests/README.md`.
+The toolchain and runtime both use `.venv`. Document service-specific verify commands in `tests/README.md` — not in the shared Makefile template.
 
 ---
 
@@ -272,15 +267,16 @@ Do **not** require **`tests/unit/`** in new services until that epic is explicit
 
 ## Dependencies
 
-- **conda** owns the Python interpreter version. **Poetry** owns all Python packages via `pyproject.toml` and `poetry.lock`.
-- Do not install application packages via `conda install` — keep all Python dependencies in `pyproject.toml` so the lock file is the single source of truth.
+- **Python 3.12** is the interpreter (enforced in `scripts/setup_dev.sh` and `pyproject.toml`).
+- **Poetry** owns all Python packages via `pyproject.toml` and `poetry.lock`.
+- Commit **`poetry.lock`** in the repo so `poetry install` is reproducible.
 - Prefer **pinned ranges** in Poetry aligned with your stack (e.g. pydantic v2, pydantic-settings, loguru, injector when using DI).
 
-### `environment.yml` — required only for native dependencies
+### conda — optional, only for native dependencies
 
-`pyproject.toml`'s Python version constraint (e.g. `python = ">=3.12,<4.0"`) enforces the interpreter version at `poetry install` time with a clear failure if the wrong Python is active — no `environment.yml` needed for pure Python services.
+Standard FastAPI services do **not** need conda. Use **Python 3.12 + `.venv` + Poetry** only.
 
-**`environment.yml` is required when** the service has native dependencies managed by conda: CUDA, system libraries, compiled C extensions, or packages not available on PyPI.
+**`environment.yml` / conda is required only when** the service has native dependencies: CUDA, system libraries, compiled C extensions, or packages not available on PyPI. Document the conda workflow in that service's `tests/README.md` — not in the shared scaffold.
 
 ---
 

@@ -6,6 +6,27 @@ Format: **Breaking** changes require code changes in consumer repos before or al
 
 ---
 
+## v0.5.8
+
+### Summary
+
+Align constitution with actual spec layout and Next.js rules boundary — no harness folder, no `AGENTS.md` in truth hierarchy, folder-level as-built references.
+
+### Changes
+
+- **`spec-driven-development.mdc`** — truth hierarchy: rules → product → ADR → as-built (removed `AGENTS.md`, launchpad, prayog references); as-built row is folder-level only
+- **`code-guidelines-index.mdc`** — per-repo docs table matches `product/`, `adr/`, `as-built/` only; removed harness/agent-router rules
+- **`testing-verify-flows.mdc`** — document actual spec tree; `as-built/` as SSOT; removed `docs/specification/harness/` prohibition and launchpad link
+- **`python-tooling.mdc`** — Python 3.12 + `.venv` default; conda optional for native deps only
+
+### Migration guide
+
+- Optional submodule bump: `git checkout v0.5.8` in `.cursor/rules`
+- No application code changes required
+- Delete any legacy `docs/specification/harness/` folder if it exists in a consumer repo (content belongs in `as-built/`)
+
+---
+
 ## v0.5.7
 
 ### Summary
