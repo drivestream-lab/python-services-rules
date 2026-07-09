@@ -6,6 +6,23 @@ Format: **Breaking** changes require code changes in consumer repos before or al
 
 ---
 
+## v0.5.10
+
+### Summary
+
+Remove remaining hardcoded org URLs from README.
+
+### Changes
+
+- **`README.md`** — scaffold and related-repo references use org-agnostic repo names (no `drivestream-lab` GitHub links)
+
+### Migration guide
+
+- Optional submodule bump: `git checkout v0.5.10` in `.cursor/rules`
+- No application code changes required
+
+---
+
 ## v0.5.9
 
 ### Summary
