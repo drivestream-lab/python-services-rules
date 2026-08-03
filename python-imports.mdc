@@ -22,6 +22,8 @@ alwaysApply: true
 
 ## Service modules
 
+- Module and class names under **`business_services/`** and **`infra_services/`**
+  must use the **`*_service`** / **`*Service`** suffix (see **`architecture.mdc`**).
 - Import **service classes** and **`get_*_service`** getters from their **service files** (e.g. **`device_service.py`**), **not** from package **`__init__.py`** re-exports.
 
 ## Narrow exception
