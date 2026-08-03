@@ -6,6 +6,28 @@ Format: **Breaking** changes require code changes in consumer repos before or al
 
 ---
 
+## v0.5.11
+
+### Summary
+
+Lock explicit `*_service` naming for business/infra modules, and enforce human-owned Alembic revisions via create/run scripts with **no** `--autogenerate`.
+
+### Changes
+
+- **`architecture.mdc`** — mandatory `*_service` / `*Service` suffix for modules and classes under `business_services/` and `infra_services/` (including outbound clients)
+- **`infra-services.mdc`**, **`python-imports.mdc`**, **`code-guidelines-index.mdc`** — align with the naming rule
+- **`database-migrations.mdc`** — mandatory workflow: `./scripts/create_postgres_migration.sh` (blank revision, never `--autogenerate`) → human edits `versions/` → `./scripts/run_postgres_migration.sh`; agents update schema/`env.py` only
+- Points at **`python-fastapi-foundation`** as the chassis that ships the migration scripts
+
+### Migration guide
+
+- Optional submodule bump: `git checkout v0.5.11` in `.cursor/rules`
+- **Additive for new work:** follow `*_service` naming and the create/run migration scripts going forward
+- **Consumer renames** of existing modules (e.g. `*_client.py` → `*_client_service.py`) are **out of band** — schedule separately when ready
+- Ensure consumer `scripts/create_postgres_migration.sh` does **not** pass `--autogenerate` (see `python-fastapi-foundation` v0.3.4+)
+
+---
+
 ## v0.5.10
 
 ### Summary

@@ -13,7 +13,7 @@ These **`.mdc`** files govern **architectural patterns** for Python microservice
 
 | File | Topic |
 |------|--------|
-| **`architecture.mdc`** | Layered **`src/`** layout, service profiles, JWT verification, **`main.py`** vs **`app.create_app()`** |
+| **`architecture.mdc`** | Layered **`src/`** layout, **`*_service` naming**, service profiles, JWT verification, **`main.py`** vs **`app.create_app()`** |
 | **`fail-fast.mdc`** | **Fail fast**; avoid defensive / silent recovery without approval |
 | **`python-imports.mdc`** | **All imports at top of file**; DI bootstrap exception |
 | **`dependency-injection.mdc`** | **`injector`**, unified **`@inject`** for all services, init/shutdown lifecycle |
@@ -21,7 +21,7 @@ These **`.mdc`** files govern **architectural patterns** for Python microservice
 | **`repository-pattern.mdc`** | **Business → repo → ORM only**; JSONB + Pydantic at repo boundary |
 | **`pydantic-schemas.mdc`** | **Pydantic not Dict**; **`_metadata`**; domain enums |
 | **`strong-typing.mdc`** | Annotations, boundaries, JSONB typing |
-| **`database-migrations.mdc`** | **Alembic**, hand-written revisions, human-owned versions |
+| **`database-migrations.mdc`** | **Alembic**: create via **`create_postgres_migration.sh`** (no autogenerate); human edits **`versions/`** and runs **`run_postgres_migration.sh`** |
 | **`spec-driven-development.mdc`** | SDD truth hierarchy, as-built discipline, PR traceability |
 | **`testing-verify-flows.mdc`** | verify / debug / pytest methodology |
 | **`logging-loguru.mdc`** | **`get_logger`**, **`setup_logging`**, structured JSON, correlation |
@@ -45,6 +45,7 @@ Each service repo should provide (not in this package):
 - **Do not** add product features or service names to shared **`.mdc`** files — extend **`docs/specification/`** in the consumer repo.
 - **Do not** edit **`.cursor/rules/`** in consumer repos — propose changes via PR on the upstream `python-services-rules` repository.
 - **No emojis** in code or logs; use tags such as **[OK]**, **[ERROR]**, **[WARNING]**, **[INFO]** when needed.
+- **Service naming:** every module/class under **`business_services/`** and **`infra_services/`** uses the **`*_service`** / **`*Service`** suffix (see **`architecture.mdc`**).
 - **Service imports:** import service classes and **`get_*_service`** getters from **service modules**, not from package **`__init__.py`**.
 
 ## Where to start

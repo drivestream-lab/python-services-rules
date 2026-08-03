@@ -9,6 +9,11 @@ alwaysApply: true
 
 Put code here when it **integrates with the outside world** or **long-lived runtime resources**, not when it encodes **business rules**.
 
+**Naming:** every infra module/class uses the **`*_service`** / **`*Service`**
+suffix — including outbound HTTP clients (e.g. **`registry_client_service.py`** /
+**`RegistryClientService`**, not **`registry_client.py`**). See
+**`architecture.mdc`**.
+
 Typical **infra** responsibilities:
 
 - **Database**: connection pools, engine/session factory, transaction helpers used by repositories (not business logic itself).
