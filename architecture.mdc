@@ -1,5 +1,5 @@
 ---
-description: Layered src/ layout, entrypoints (main vs create_app), import paths — reusable Python service pattern.
+description: Layered src/ layout, *_service naming for business/infra, entrypoints, import paths — reusable Python service pattern.
 alwaysApply: true
 ---
 
@@ -28,6 +28,35 @@ Use a **layered `src/` tree** so entry, composition, domain, and IO stay separat
 | **`utils/`** | Generic helpers (not domain "engine" or repo logic) |
 | **`engine/`** | Optional: deterministic domain logic without HTTP/DB |
 | **`observability/`** | Optional: metrics, tracing helpers (when the product requires them) |
+
+## Naming — explicit `*_service` suffix
+
+Every module and class under **`business_services/`** and **`infra_services/`**
+uses an explicit **`_service`** / **`Service`** suffix for readability and
+grep-ability. Bases (`base_business_service.py`, `base_infra_service.py`) already
+follow this.
+
+| Layer | Module file | Class |
+|-------|-------------|-------|
+| Business | `device_service.py` | `DeviceService` |
+| Business | `job_worker_service.py` | `JobWorkerService` |
+| Infra | `postgres_service.py` | `PostgresService` |
+| Infra | `redis_service.py` | `RedisService` |
+| Infra | `telemetry_service.py` | `TelemetryService` |
+| Infra | `registry_client_service.py` | `RegistryClientService` |
+| Infra | `kafka_service.py` | `KafkaService` |
+
+**Do not** use truncated role nouns for service modules — e.g. `forge_client.py`,
+`policy_engine.py`, `run_orchestrator.py`, `notifier.py`. Prefer
+`forge_client_service.py`, `policy_engine_service.py`, `run_orchestrator_service.py`,
+`notifier_service.py` (class names end in **`Service`**).
+
+Protocols / small helper types may live in the same module as the service or a
+sibling non-service module when they are not DI-registered services.
+
+Import services from **service modules**, not package `__init__.py` re-exports
+(see **`python-imports.mdc`**). The reference chassis is
+**`python-fastapi-foundation`**.
 
 ## Service profiles (apply rules with repo requirements)
 

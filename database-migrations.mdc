@@ -1,34 +1,70 @@
 ---
-description: Alembic — humans own versions/; agents update ORM schema + postgres_migrations/env.py imports, never versions/.
+description: Alembic — create via scripts/create_postgres_migration.sh (no autogenerate); human edits versions/ and runs scripts/run_postgres_migration.sh.
 alwaysApply: true
 ---
 
 # Database migrations (Alembic)
 
+Alembic requires a revision file under **`postgres_migrations/versions/`**. That
+file is created only through the consumer's create script (shipped by
+**`python-fastapi-foundation`**), then owned and applied by a **human**.
+
+## Mandatory workflow (do not invent another)
+
+1. **Create the revision file (human):**
+
+   ```bash
+   ./scripts/create_postgres_migration.sh "description"
+   ```
+
+   This must call Alembic **`revision -m`** only — **never**
+   **`--autogenerate`**. The script's job is to materialize an empty revision
+   under **`postgres_migrations/versions/`** for the human to fill in.
+
+2. **Edit (human):** Hand-write **`upgrade`** / **`downgrade`** in the new
+   revision. Prefer intentional, reviewed DDL.
+
+3. **Apply (human):**
+
+   ```bash
+   ./scripts/run_postgres_migration.sh head   # or +1 / -1 per script help
+   ```
+
+Do **not** document raw `alembic` CLI as the default workflow in repo docs.
+Scripts live in each service's **`scripts/`** (see the FastAPI chassis).
+
 ## Who does what (do not mix this up)
 
-- **Agent / automated work:** Update **SQLAlchemy schema** under **`src/database/postgres/schema/`** (and aligned code: repos, models). Also update **`postgres_migrations/env.py`**: **import each new schema module** so the ORM class is loaded and registers on **`postgres_metadata`** (`target_metadata` for Alembic). **Do not** create, add, or edit **any** file under **`postgres_migrations/versions/`** — not even for a new phase or feature; the human is the only one who adds revisions (see below).
-- **Human (you):** **Create and own migrations manually** — run **`./scripts/create_postgres_migration.sh "description"`**, then **hand-write** `upgrade` / `downgrade` in the generated revision, then apply with **`./scripts/run_postgres_migration.sh`** (`head`, `+1`, `-1` per script help). Do not document raw `alembic` CLI as the default workflow in repo docs.
+| Actor | Allowed | Forbidden |
+|-------|---------|-----------|
+| **Agent / automated work** | Update **`src/database/postgres/schema/`** and aligned repos/models; update **`postgres_migrations/env.py`** imports so new ORM modules register on **`postgres_metadata`**; **describe** required DDL in PR/chat | Create, add, or edit **any** file under **`postgres_migrations/versions/`**; run create/run migration scripts unless the human explicitly asked in that session; use **`alembic revision --autogenerate`** or ad-hoc **`alembic revision`** |
+| **Human** | Run **`create_postgres_migration.sh`**, hand-write the revision, run **`run_postgres_migration.sh`** | Treating autogenerate as the source of truth for committed revisions |
 
-This avoids repeating the mistake of committing migration revisions from agent sessions while the team keeps sole ownership of DDL timing and review.
+This avoids committing agent-authored DDL while keeping Alembic's mandatory
+revision file in the tree for humans to complete and apply.
 
 ## Policy
 
-- **Write migration revision files manually** (explicit `upgrade` / `downgrade`).
-- **Do not** treat **autogenerate-from-ORM** as the default source of truth for committed revisions unless the team explicitly adopted that workflow. Prefer **reviewed, intentional DDL**.
+- **Write migration revision bodies manually** (explicit `upgrade` / `downgrade`).
+- **Do not** use **`--autogenerate`** — not in scripts, docs, or agent sessions.
+- New files under **`versions/`** start **only** from
+  **`./scripts/create_postgres_migration.sh`**.
 
-## Migration file ownership
+## Schema registration vs revisions
 
-- **`postgres_migrations/env.py`** is part of **schema registration** (import side effects on `postgres_metadata`); update it when adding tables, same as **`schema/`** — still **no** committed autogen revisions as truth.
-- **Do not** add or edit files under **`postgres_migrations/versions/`** as drive-by or **agent** work unless the repo explicitly allows it.
-- New revisions start from **`./scripts/create_postgres_migration.sh`**; the **human** edits the generated revision file, then runs **`./scripts/run_postgres_migration.sh`**.
-- When schema or indexes are needed and an agent is implementing features, the agent updates **`src/database/postgres/schema/`** and **`postgres_migrations/env.py`** (imports); if helpful, **describe** the required DDL in PR text, comments, or chat so the owner can produce the matching migration file under **`versions/`**.
+- **`postgres_migrations/env.py`** is part of **schema registration** (import
+  side effects on `postgres_metadata`); agents update it when adding tables,
+  same as **`schema/`**.
+- **`postgres_migrations/versions/`** is **human-owned**. Agents never touch it.
 
 ## Practice
 
-- Name revisions clearly; keep **`upgrade`** and **`downgrade`** symmetric and safe for shared environments.
-- Coordinate **`src/database/postgres/schema/`**, **`postgres_migrations/env.py`**, and the **human-written** revision under **`versions/`** so ORM metadata and database stay aligned—still **no** autogen as the source of truth for the file content unless policy says otherwise.
+- Name revisions clearly; keep **`upgrade`** and **`downgrade`** symmetric and
+  safe for shared environments.
+- Coordinate **`schema/`**, **`env.py`**, and the **human-written** revision so
+  ORM metadata and the database stay aligned.
 
 ## Related rules
 
 - **Repositories & ORM:** `repository-pattern.mdc`
+- **Chassis scripts:** `python-fastapi-foundation` (`scripts/create_postgres_migration.sh`, `scripts/run_postgres_migration.sh`)
