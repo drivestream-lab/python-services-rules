@@ -6,6 +6,35 @@ Format: **Breaking** changes require code changes in consumer repos before or al
 
 ---
 
+## v0.5.12
+
+### Summary
+
+Correct Alembic ownership: agents **must** run `create_postgres_migration.sh`
+(`revision --autogenerate`) so `versions/` is materialised; humans own apply via
+`run_postgres_migration.sh`. Forbid DDL-NOTE substitutes. Fix CI
+`mdc-boundary` false positives on API path examples.
+
+### Changes
+
+- **`database-migrations.mdc`** — agent-owned create (autogenerate via chassis
+  script); human-owned apply; no blank revisions / no DDL instruction docs as
+  substitutes
+- **`code-guidelines-index.mdc`**, **`README.md`** — align with the corrected
+  workflow
+- **`scripts/check_mdc_boundary.sh`** — stop treating HTTP paths like
+  `` `/health` `` as prayog skill slash-commands
+
+### Migration guide
+
+- Optional submodule bump: `git checkout v0.5.12` in `.cursor/rules`
+- Ensure consumer `scripts/create_postgres_migration.sh` uses
+  **`--autogenerate`** (see `python-fastapi-foundation` v0.3.5+; Gateflow-style
+  scripts already match)
+- Stop writing `DDL-NOTE-*.md` (or equivalent) when the create script can run
+
+---
+
 ## v0.5.11
 
 ### Summary

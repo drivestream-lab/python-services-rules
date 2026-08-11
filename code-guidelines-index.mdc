@@ -21,7 +21,7 @@ These **`.mdc`** files govern **architectural patterns** for Python microservice
 | **`repository-pattern.mdc`** | **Business → repo → ORM only**; JSONB + Pydantic at repo boundary |
 | **`pydantic-schemas.mdc`** | **Pydantic not Dict**; **`_metadata`**; domain enums |
 | **`strong-typing.mdc`** | Annotations, boundaries, JSONB typing |
-| **`database-migrations.mdc`** | **Alembic**: create via **`create_postgres_migration.sh`** (no autogenerate); human edits **`versions/`** and runs **`run_postgres_migration.sh`** |
+| **`database-migrations.mdc`** | **Alembic**: agent runs **`create_postgres_migration.sh`** (**`--autogenerate`**); human runs **`run_postgres_migration.sh`**; no DDL-NOTE substitutes |
 | **`spec-driven-development.mdc`** | SDD truth hierarchy, as-built discipline, PR traceability |
 | **`testing-verify-flows.mdc`** | verify / debug / pytest methodology |
 | **`logging-loguru.mdc`** | **`get_logger`**, **`setup_logging`**, structured JSON, correlation |
