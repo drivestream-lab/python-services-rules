@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Fail if MDC constitution files enumerate prayog skills (belong in AGENTS.md + prayog only).
+# Do NOT treat HTTP/API path examples (`/health`, `/internal`, …) as skill slash-commands.
 set -euo pipefail
 
 violations=0
@@ -9,7 +10,10 @@ for f in *.mdc; do
     echo "FAIL: skill catalog section in $f (use AGENTS.md + prayog-skills)"
     violations=1
   fi
-  if grep -qE '`/[a-z][a-z0-9-]+`' "$f"; then
+  # Skill slash-commands are kebab-case verbs with at least one hyphen
+  # (e.g. `/spec-draft`, `/pre-implement`). Single-segment paths like
+  # `/health` or `/internal` are API examples, not skills.
+  if grep -qE '`/[a-z][a-z0-9]*(-[a-z0-9]+)+`' "$f"; then
     echo "FAIL: slash-command skill reference in $f (constitution must not list prayog skills)"
     violations=1
   fi
